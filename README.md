@@ -28,7 +28,7 @@ The above packages can be installed separately or through following commands:
 * ***read_toi.py*** will pre-process and create all the available light curves at [Lightkurve](https://docs.lightkurve.org/)
 > $ python read_toi.py
 
-This setup will create the following files and folders:
+This setup will create the following folders and files:
 > /data
   
   * toi.pickle
