@@ -38,7 +38,7 @@ This setup will create the following folders and files:
 
 > /folded_lightcurves
   
-  This folder will contain all the available TOIs with the following columns - ['time', 'flux', 'flux_err'].
+  This folder will contain all the available TOIs with the following columns - ['phase', 'flux', 'flux_err'].
   
 > /images
 

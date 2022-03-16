@@ -279,6 +279,7 @@ class TESS_Lightcurves(object):
 
                 # Store the columns - time, flux, flux_err
                 tic_folded = binned_lc[['time', 'flux', 'flux_err']]
+                tic_folded = tic_folded.rename({'time':'phase'}, axis=1)
 
                 # Save the light curves in '/folded_lightcurves'
                 lightcurve_path = self.path + f'/folded_lightcurves/{toi}.csv.gz'
@@ -422,7 +423,7 @@ class TESS_Lightcurves(object):
                             author, depth, min_time, max_time, tic_id, duration = sorted_tic_info[toi]
                             axs[i,j].set_title(f"{toi} -- Depth:{depth:.2f} ppm -- Exp_Time: {max_time} -- Transit: {duration:.2f} hrs")
                             binned_lc = pd.read_csv(self.path+f"/folded_lightcurves/{file_list[id]}", compression = 'gzip')
-                            x = np.array(binned_lc['time'])
+                            x = np.array(binned_lc['phase'])
                             y = np.array(binned_lc['flux'])
                             axs[i,j].scatter(x,y, s=5, c='black', label=f"{tic_id}--{author}")
                             axs[i,j].legend(loc='lower left')
