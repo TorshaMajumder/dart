@@ -9,6 +9,7 @@ import pandas as pd
 import lightkurve as lk
 import matplotlib.pyplot as plt
 from collections import OrderedDict
+from sklearn.preprocessing import StandardScaler
 
 
 
@@ -227,31 +228,39 @@ class TESS_Lightcurves(object):
                     # If the TIC ID doesn't have a valid author then store it in a dict
                     else:
                         unsearched_tois[toi]=tic_id
+                        continue
+
+
+                    # Download individual light curves due to missing sectors
+                    if rerun:
+                        if len(search_tic_id) == 1:
+                            x = search_tic_id.download()
+                            lcs.append(x)
+                        else:
+                            for i in range(0, len(search_tic_id)):
+                                x= search_tic_id[i].download()
+                                lcs.append(x)
+                        tic_collections = lk.LightCurveCollection(lcs)
+
+                    # Download all the light curves
+                    else:
+                        tic_collections = search_tic_id.download_all()
+
 
                 # If there in no data for TIC ID
                 else:
-                        unsearched_tois[toi]=tic_id
+                    unsearched_tois[toi]=tic_id
+                    continue
 
-                # Download individual light curves due to missing sectors
-                if rerun:
-                    if len(search_tic_id) == 1:
-                        x = search_tic_id.download()
-                        lcs.append(x)
-                    else:
-                        for i in range(0, len(search_tic_id)):
-                            x= search_tic_id[i].download()
-                            lcs.append(x)
-                    tic_collections = lk.LightCurveCollection(lcs)
 
-                # Download all the light curves
-                else:
-                    tic_collections = search_tic_id.download_all()
+
+
 
                 # Pre-process the light curves
                 tics = tic_collections.stitch()
                 tic_clean=tics.remove_outliers(sigma=20, sigma_upper=4)
                 lc_folded = tic_clean.fold(period= period, epoch_time=epoch)
-                phase_mask = (lc_folded.phase > -1.50*fractional_duration)& (lc_folded.phase < 1.50*fractional_duration)
+                phase_mask = (lc_folded.phase > -1.50*fractional_duration) & (lc_folded.phase < 1.50*fractional_duration)
                 lc_zoom = lc_folded[phase_mask]
                 binned_lc= lc_zoom.bin(time_bin_size=fractional_duration/150).normalize() - 1
 
@@ -366,19 +375,98 @@ class TESS_Lightcurves(object):
     def read_data_samples(self):
 
         """
-        Print all the TOIs that have less than 300 data samples
+        Print all the TOIs that have less than 300 data samples and
+        Total light curves where >50% of flux values are NaNs
         """
-
+        count = 0
         file_list = os.listdir(self.path+"/folded_lightcurves")
         for file in file_list:
             tics = pd.read_csv(self.path+f"/folded_lightcurves/{file}", compression = 'gzip')
             if (len(tics)!=300):
-                print(f"{file[:-7]}, {len(tics)}\n")
+                print(f"{file[:-7]}: length - {len(tics)}\n")
+
+            count_nans = tics['flux'].isna().sum()
+            if (count_nans > 150):
+                count += 1
+        print(f"Total light curves where >50% of flux values are NaNs: {count}\n")
 
 
-    
-    
-    def generate_tic_image(self):
+    def preprocess_lightcurves(self):
+
+        """
+        Returns
+        -------
+        lightcurves: dict
+            Contains 'phase' (key) values as a list of length 300 and
+            'flux' (key) as ndarray of shape (n, 300) where 'n' is the
+            total number of light curves generated.
+        """
+
+        file_list = list()
+        file_exception = list()
+        flux = list()
+        lightcurves = dict()
+        scaler = StandardScaler()
+
+        with open('data/tic_info.pickle', 'rb') as file:
+            tic_info = pickle.load(file)
+
+        tois = list(tic_info.keys())
+
+        # Search all the available TOIs
+        for toi in tois:
+            file_list.append(toi+'.csv.gz')
+
+
+        for file in file_list:
+            try:
+                tics = pd.read_csv(self.path+f"/folded_lightcurves/{file}", compression = 'gzip')
+                author, depth, min_time, max_time, tic_id, duration = tic_info[file[:-7]]
+                #
+                # Store those light curves where the shape is (300,1),
+                # Transform the flux using StandardScaler(), and
+                # Replace the NaNs with a higher negative value (-999.0)
+                #
+                if (len(tics.flux) == 300):
+                    scaler.fit(tics.flux.values.reshape(-1,1))
+                    tics.flux = scaler.transform(tics.flux.values.reshape(-1, 1))
+                    tics.flux.fillna(value=-999.0, inplace=True)
+                    #
+                    # Normalize the phase column
+                    #
+                    tics.phase = tics.phase/duration
+                    flux.append(tics.flux.values.tolist())
+
+            except Exception as e:
+                print(f"\nException Raised: {e}\n"f"Check : {file[:-7]}, {file}")
+                #
+                # Store the TOIs for which the flux couldn't be stored
+                #
+                file_exception.append(file[:-7])
+                continue
+
+        #
+        # Store the phase and flux values in the dictionary
+        #
+        flux = np.array(flux)
+        lightcurves['phase'] = tics.phase.values.tolist()
+        lightcurves['flux'] = flux
+
+
+        # Store the files
+        with open(self.path+f"/data/lightcurves.pickle", 'wb') as file:
+            pickle.dump(lightcurves, file)
+
+        if file_exception:
+            with open(self.path+f"/file_exception.pickle", 'wb') as file:
+                pickle.dump(file_exception, file)
+            print("\n Flux values for some TOIs couldn't be stored.\n Please refer file_exception.pickle file!")
+
+
+
+
+
+    def generate_tic_image(self, folder=None):
 
         """
          Generates images for all the available TOIs in '/images'
@@ -422,7 +510,7 @@ class TESS_Lightcurves(object):
                             toi = tois[id]
                             author, depth, min_time, max_time, tic_id, duration = sorted_tic_info[toi]
                             axs[i,j].set_title(f"{toi} -- Depth:{depth:.2f} ppm -- Exp_Time: {max_time} -- Transit: {duration:.2f} hrs")
-                            binned_lc = pd.read_csv(self.path+f"/folded_lightcurves/{file_list[id]}", compression = 'gzip')
+                            binned_lc = pd.read_csv(self.path+f"/{folder}/{file_list[id]}", compression = 'gzip')
                             x = np.array(binned_lc['phase'])
                             y = np.array(binned_lc['flux'])
                             axs[i,j].scatter(x,y, s=5, c='black', label=f"{tic_id}--{author}")
@@ -451,16 +539,21 @@ if __name__ == '__main__':
     create_lightcurves.generate_tic()
     tois = create_lightcurves.read_toi_from_pickle()
     toi_info = create_lightcurves.read_toi_info_from_pickle()
-
+    #
     create_lightcurves.save_folded_lightcurve(tois, toi_info, rerun=False)
-    print(f"\n\nLight curves are generated!\n")
-
+    print("\n\nLight curves are generated!\n")
+    #
     unsearched_tic_ids = create_lightcurves.read_unsearched_tois()
     create_lightcurves.save_folded_lightcurve(unsearched_tic_ids, toi_info, rerun=True)
-    print(f"\n\nUnsearched light curves are generated!\n")
-
-    print(f"TOIs below 300 data samples: \n")
+    print("\n\nUnsearched light curves are generated!\n")
+    #
+    print("TOIs below 300 data samples: \n")
     create_lightcurves.read_data_samples()
+    #
+    create_lightcurves.generate_tic_image(folder='folded_lightcurves')
+    print("Images are available!\n")
+    #
+    create_lightcurves.preprocess_lightcurves()
+    print("light curves are pre-processed and stored in /data!\n")
 
-    create_lightcurves.generate_tic_image()
-    print(f"Images are available!\n")
+
