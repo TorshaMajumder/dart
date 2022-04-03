@@ -9,6 +9,7 @@ This class generates light curves for the TOIs available at [ExoFOP-TESS](https:
 It utilizes the following packages:
 * [NumPy](https://numpy.org/install/)
 * [Pandas](https://pandas.pydata.org/docs/getting_started/install.html)
+* [Scikit-Learn](https://scikit-learn.org/stable/install.html)
 * [Lightkurve](https://docs.lightkurve.org/about/install.html)
 * [Matplotlib](https://matplotlib.org/stable/users/installing/index.html)
 * [Requests](https://pypi.org/project/requests/)
@@ -35,6 +36,7 @@ This setup will create the following folders and files:
   * toi_info.pickle
   * tic_info.pickle
   * tic_info_rerun.pickle
+  * lightcurves.pickle
 
 > /folded_lightcurves
   
@@ -51,6 +53,8 @@ This setup will create the following folders and files:
 > unsearched_toi.pickle
 
 > unresolved_toi.pickle
+
+> file_exception.pickle
   
 
   
