@@ -1,2 +1,2 @@
 # Anomaly-Detection-in-TESS-Planetary-Transits-and-Astronomical-Transients
-Anomaly Detection in TESS Planetary Transits
+Anomaly Detection in TESS Planetary Transits and Astronomical Transients
