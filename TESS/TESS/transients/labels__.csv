@@ -1,9 +1,9 @@
 Label,Counts,Group
-Unclassified,2833,SNIa
+Unclassified,2833,Unclassified
 SNIa,287,SNIa
-SNII,64,SNIa
-CV,16,SNII
-SNIa-91T-like,15,Others
+SNII,64,SNII
+CV,16,Others
+SNIa-91T-like,15,SNIa
 SNIIn,12,SNII
 SNIc,7,SNIb/c
 SNIb,5,SNIb/c
@@ -13,7 +13,7 @@ SNIa-91bg-like,3,SNIa
 SNI,3,SNIb/c
 AGN,3,AGN
 Mdwarf,3,Others
-SLSN-I,2,SNIb/c
+SLSN-I,2,Others
 SNIbn,2,SNIb/c
 SN,2,SN
 SNIIb,1,SNII
