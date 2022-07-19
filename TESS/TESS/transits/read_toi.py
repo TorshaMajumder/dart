@@ -13,9 +13,9 @@ from sklearn.preprocessing import MinMaxScaler
 
 
 
-class TESS_Lightcurves(object):
+class TESS_Transits(object):
     """
-    TESS_Lightcurves is a pre-processing tool for generating light curves from NASA's TESS telescope.
+    TESS_Transits is a pre-processing tool for generating planetary transits from NASA's TESS telescope.
 
     This class generates light curves for the TOIs available at - "https://exofop.ipac.caltech.edu/tess/view_toi.php"
 
@@ -487,7 +487,7 @@ class TESS_Lightcurves(object):
 
 
         # Store the files
-        with open(self.path+f"/data/lightcurves.pickle", 'wb') as file:
+        with open(self.path+f"/data/transits.pickle", 'wb') as file:
             pickle.dump(lightcurves, file)
 
         if file_exception:
@@ -567,7 +567,7 @@ class TESS_Lightcurves(object):
 if __name__ == '__main__':
 
 
-    create_lightcurves = TESS_Lightcurves()
+    create_lightcurves = TESS_Transits()
 
     create_lightcurves.generate_tic()
     tois = create_lightcurves.read_toi_from_pickle()
