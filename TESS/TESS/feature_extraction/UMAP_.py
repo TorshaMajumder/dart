@@ -1,7 +1,9 @@
+#
+# Import all the dependencies
+#
 import os
 import umap
 import pickle
-
 #
 # Create '/latent_space_data' folder if it does not exists already
 #

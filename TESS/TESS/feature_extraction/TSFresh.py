@@ -8,7 +8,6 @@ import pandas as pd
 import tsfresh as tf
 from TESS.feature_extraction.KernelPCA import Kernel_PCA
 from TESS.anomaly_detection.UnsupervisedRF import UnsupervisedRandomForest
-
 #
 # Create '/latent_space_data' folder if it does not exists already
 #

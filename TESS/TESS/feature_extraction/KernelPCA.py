@@ -5,7 +5,6 @@ import os
 import pickle
 from sklearn.decomposition import KernelPCA
 from sklearn.metrics import mean_squared_error
-
 #
 # Create '/latent_space_data' folder if it does not exists already
 #

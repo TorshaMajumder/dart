@@ -1,8 +1,9 @@
+#
+# Import all the dependencies
+#
 import os
 import pickle
 import tensorflow as tf
-
-
 #
 # Create '/latent_space_data' folder if it does not exists already
 #
@@ -287,9 +288,9 @@ class GenerateModel(tf.keras.Model):
 
 if __name__ == '__main__':
 
-    data = GenerateData(type="transientts", path="../transients/data/transients.pickle", n_filters=1)
+    data = GenerateData(type="transients", path="../transients/data/transients.pickle", n_filters=1)
     X_train = data.extract_data()
-    vae = VariationalAutoEncoder(X_train=X_train, epochs=100, batch_size=250, latent_dim=10, type="transients")
+    vae = VariationalAutoEncoder(X_train=X_train, epochs=2, batch_size=50, latent_dim=10, type="transients")
     vae.fit_transform()
 
 
