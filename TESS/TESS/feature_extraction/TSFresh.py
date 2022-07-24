@@ -6,6 +6,7 @@ import pickle
 import numpy as np
 import pandas as pd
 import tsfresh as tf
+from TESS.feature_extraction.KernelPCA import Kernel_PCA
 from TESS.anomaly_detection.UnsupervisedRF import UnsupervisedRandomForest
 
 #
@@ -14,10 +15,7 @@ from TESS.anomaly_detection.UnsupervisedRF import UnsupervisedRandomForest
 if not os.path.exists('../latent_space_data'):
     os.makedirs('../latent_space_data')
 
-
-
 class TSFresh(object):
-
 
     """
 
@@ -171,7 +169,7 @@ class TSFresh(object):
         print(f"\nTSFresh features are extracted and stored in -- {path}!\n")
 
 
-    def get_important_features(self, path=None):
+    def get_important_features(self, path=None, method="URF"):
 
         """
         Generates Unsupervised Random Forest extracted important features
@@ -181,31 +179,50 @@ class TSFresh(object):
         path: string
             the file location of the TSFresh extracted features
 
+        method: string (default = URF)
+            method to extract 'n_features' using - Kernel_PCA (KPCA) or Unsupervised_RF (URF)
 
         """
-        #
-        #
-        #
-        feature_list = list()
         #
         # Create '/latent_space_data/{type}/' folder if it does not exists already
         #
         if not os.path.exists(f"../latent_space_data/{self.type}"):
             os.makedirs(f"../latent_space_data/{self.type}")
-
+        #
+        # Validate the method type
+        #
+        try:
+            if method not in ["URF", "KPCA"]:
+                raise ValueError(f"\nValueError: Unknown method type!\nPlease provide method as URF or KPCA.\n")
+        except Exception as e:
+            print(e)
+            return
+        #
+        # Load TSFresh data
+        #
         try:
             with open(path, 'rb') as file:
                 tsfresh_data = pickle.load(file)
         except Exception as e:
             print(f"\nFileNotFound: Unable to load the .pickle file!\n")
             return
-
+        #
+        # Extract - n_features - using KPCA or URF
+        #
         try:
+            #
+            # Convert the dataframe to numpy array
+            #
             extracted_features = tsfresh_data.to_numpy()
             #
-            # Default parameters for Unsupervised RF
             #
-            params = { 'X': extracted_features,
+            #
+            if method == "URF":
+                feature_list = list()
+                #
+                # Default parameters for Unsupervised RF
+                #
+                params = { 'X': extracted_features,
                    'n_features': extracted_features.shape[1],
                    'max_depth': 100,
                    'min_samples_split': 3,
@@ -215,50 +232,63 @@ class TSFresh(object):
                    'n_estimators': 100,
                    'random_state': 0
                    }
-            #
-            # Initialize Unsupervised RF classifier
-            #
-            URF = UnsupervisedRandomForest(**params)
-            #
-            # Generate synthetic data with labels
-            #
-            X, y = URF.generate_data()
-            #
-            # Fit the data to the classifier
-            #
-            URF.fit(X, y)
-            #
-            # Get the important features
-            #
-            features = URF.get_feature_importance(plot=False)
+                #
+                # Initialize Unsupervised RF classifier
+                #
+                URF = UnsupervisedRandomForest(**params)
+                #
+                # Generate synthetic data with labels
+                #
+                X, y = URF.generate_data()
+                #
+                # Fit the data to the classifier
+                #
+                URF.fit(X, y)
+                #
+                # Get the important features
+                #
+                features = URF.get_feature_importance(plot=False)
 
-            for i in range(self.n_features):
-                idx, val = features[i][0], features[i][1]
-                feature_list.append(idx)
+                for i in range(self.n_features):
+                    idx, val = features[i][0], features[i][1]
+                    feature_list.append(idx)
+                #
+                # Reshape the dataframe
+                #
+                extracted_df = tsfresh_data.iloc[:, feature_list]
+                extracted_df = extracted_df.reset_index(drop=True)
+                #
+                # Store the file in -- '/latent_space_data/{type}/' folder
+                #
+                with open(f"../latent_space_data/{self.type}/tsfresh.pickle", 'wb') as file:
+                    pickle.dump(extracted_df, file)
 
-            #
-            # Reshape the dataframe
-            #
-            extracted_df = tsfresh_data.iloc[:, feature_list]
-            extracted_df = extracted_df.reset_index(drop=True)
+                print(f"\nTSFresh latent space data is extracted and stored "
+                      f"in -- /latent_space_data/{self.type} -- folder!\n")
+
+            elif method == "KPCA":
+                #
+                # Initialize Kernel_PCA classifier
+                #
+                k_pca = Kernel_PCA(X_train=extracted_features, type=self.type, n_features= self.n_features)
+                #
+                # Fit the data to the classifier
+                #
+                k_pca.fit()
+                #
+                # Transform the data using the classifier
+                #
+                k_pca.transform(tsfresh=True)
+                #
+                #
+                #
+                print(f"\nTSFresh latent space data is extracted and stored "
+                      f"in -- /latent_space_data/{self.type} -- folder!\n")
+
 
         except Exception as e:
             print(f"\nUnknownError: {e}\n")
             return
-
-        #
-        # Store the file in -- '/latent_space_data/{type}/' folder
-        #
-        with open(f"../latent_space_data/{self.type}/tsfresh.pickle", 'wb') as file:
-            pickle.dump(extracted_df, file)
-
-        print(f"\nTSFresh latent space data is extracted and stored in -- /latent_space_data/{self.type} -- folder!\n")
-
-
-
-
-
-
 
 
 if __name__ == '__main__':
@@ -267,7 +297,7 @@ if __name__ == '__main__':
     tsfresh = TSFresh(type="transients")
     tsfresh.generate_data(path="../transients/data/transients.pickle")
     tsfresh.extract_features(path="../transients/data/tsfresh_data.pickle")
-    tsfresh.get_important_features(path="../transients/data/tsfresh_data.pickle")
+    tsfresh.get_important_features(path="../transients/data/tsfresh_data.pickle", method="KPCA")
 
 
 

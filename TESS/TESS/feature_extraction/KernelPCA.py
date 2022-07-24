@@ -13,13 +13,12 @@ if not os.path.exists('../latent_space_data'):
     os.makedirs('../latent_space_data')
 
 
-
 class Kernel_PCA(object):
 
 
     """
 
-    Kernel_PCA is a feature extraction tool for dimensionality reduction
+    KernelPCA is a feature extraction tool for dimensionality reduction
     of the light curves from NASA's TESS telescope.
 
     The light curves are available in the folder -
@@ -28,6 +27,9 @@ class Kernel_PCA(object):
 
     Parameters
     ----------
+
+    X_train: numpy ndarray (default = None)
+        training data set
 
     type: string
         type of light curves (transits or transients)
@@ -54,10 +56,10 @@ class Kernel_PCA(object):
 
     """
 
-    def __init__(self, type=None, n_features=10, kernel='rbf', gamma=0.001,
+    def __init__(self, X_train=None, type=None, n_features=10, kernel='rbf', gamma=0.001,
                  alpha=0.001, fit_inverse_transform=True, n_jobs=-1):
 
-        self.X = None
+        self.X = X_train
         self.type = type
         self.n_features = n_features
         self.kernel = kernel
@@ -144,17 +146,23 @@ class Kernel_PCA(object):
 
         except Exception as e:
             print(f"\nUnknownError: {e}\n")
+            return
 
         print(f"\nData has been fitted to K_PCA estimator!\n")
 
 
-    def transform(self):
+    def transform(self, tsfresh=False):
 
         """
         Transforms the data by Kernel PCA estimator
 
-        """
+        Parameter
+        ---------
 
+        tsfresh: boolean (default=False)
+            transforming the TSFresh data
+
+        """
         #
         # Create '/latent_space_data/{type}/' folder if it does not exists already
         #
@@ -174,16 +182,28 @@ class Kernel_PCA(object):
         #
         print(f"\nData has been transformed by K_PCA estimator!\n")
         #
-        # Store the file in -- '/latent_space_data/{type}/' folder
         #
-        with open(f"../latent_space_data/{self.type}/k_pca.pickle", 'wb') as file:
-            pickle.dump(transformed_data, file)
+        #
+        if tsfresh:
+            #
+            # Store the file in -- '/latent_space_data/{type}/' folder
+            #
+            with open(f"../latent_space_data/{self.type}/tsfresh.pickle", 'wb') as file:
+                pickle.dump(transformed_data, file)
 
-        #
-        #
-        #
-        print(f"\nKernel_PCA latent space data is extracted and stored "
-              f"in -- /latent_space_data/{self.type} -- folder!\n")
+        else:
+            #
+            # Store the file in -- '/latent_space_data/{type}/' folder
+            #
+            with open(f"../latent_space_data/{self.type}/k_pca.pickle", 'wb') as file:
+                pickle.dump(transformed_data, file)
+            #
+            #
+            #
+            print(f"\nKernel_PCA latent space data is extracted and stored "
+                  f"in -- /latent_space_data/{self.type} -- folder!\n")
+
+
 
     def reconstruction_loss(self):
 
@@ -200,6 +220,6 @@ if __name__ == '__main__':
     k_pca = Kernel_PCA(type="transients")
     k_pca.read_data(path="../transients/data/transients.pickle")
     k_pca.fit()
-    k_pca.transform()
+    k_pca.transform(tsfresh=False)
     k_pca.reconstruction_loss()
 
