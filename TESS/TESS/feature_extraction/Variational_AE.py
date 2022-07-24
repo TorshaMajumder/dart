@@ -247,7 +247,6 @@ class Sampling(tf.keras.layers.Layer):
 class GenerateModel(tf.keras.Model):
     def __init__(self, encoder, decoder):
         super(GenerateModel, self).__init__()
-        self.VAE_Estimator = None
         self.encoder = encoder
         self.decoder = decoder
         self.total_loss_tracker = tf.keras.metrics.Mean(name="total_loss")
