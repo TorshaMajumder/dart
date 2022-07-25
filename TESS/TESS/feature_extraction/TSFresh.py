@@ -47,6 +47,14 @@ class TSFresh(object):
         self.n_features = n_features
         self.tsfresh_data = None
 
+        try:
+            if self.type not in ["transits", "transients"]:
+                raise ValueError(f"\n'{self.type}' is not a valid type!"
+                                 f"\nPlease provide the type as - 'transits' or 'transients'")
+        except Exception as e:
+            print(e)
+            exit()
+
 
     def generate_data(self, path=None):
 
@@ -292,11 +300,10 @@ class TSFresh(object):
 
 if __name__ == '__main__':
 
-
     tsfresh = TSFresh(type="transients")
     tsfresh.generate_data(path="../transients/data/transients.pickle")
     tsfresh.extract_features(path="../transients/data/tsfresh_data.pickle")
-    tsfresh.get_important_features(path="../transients/data/tsfresh_data.pickle", method="KPCA")
+    tsfresh.get_important_features(path="../transients/data/tsfresh_data.pickle", method="URF")
 
 
 

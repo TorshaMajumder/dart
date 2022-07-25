@@ -44,6 +44,14 @@ class UMap(object):
         self.n_features = n_features
         self.umap_estimator = None
 
+        try:
+            if self.type not in ["transits", "transients"]:
+                raise ValueError(f"\n'{self.type}' is not a valid type!"
+                                 f"\nPlease provide the type as - 'transits' or 'transients'")
+        except Exception as e:
+            print(e)
+            exit()
+
 
     def read_data(self, path=None):
 

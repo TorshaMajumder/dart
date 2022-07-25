@@ -71,6 +71,14 @@ class Kernel_PCA(object):
         self.fit_inverse_transform = fit_inverse_transform
         self.n_jobs = n_jobs
 
+        try:
+            if self.type not in ["transits", "transients"]:
+                raise ValueError(f"\n'{self.type}' is not a valid type!"
+                                 f"\nPlease provide the type as - 'transits' or 'transients'")
+        except Exception as e:
+            print(e)
+            exit()
+
 
 
     def read_data(self, path=None):

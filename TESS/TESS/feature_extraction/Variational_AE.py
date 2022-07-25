@@ -65,6 +65,14 @@ class VariationalAutoEncoder(object):
         self.batch_size = batch_size
         self.n_features = self.X_train.shape[1]
 
+        try:
+            if self.type not in ["transits", "transients"]:
+                raise ValueError(f"\n'{self.type}' is not a valid type!"
+                                 f"\nPlease provide the type as - 'transits' or 'transients'")
+        except Exception as e:
+            print(e)
+            exit()
+
     def get_encoder(self):
 
         """
@@ -178,6 +186,14 @@ class GenerateData(object):
         self.path = path
         self.n_filters = n_filters
 
+        try:
+            if self.type not in ["transits", "transients"]:
+                raise ValueError(f"\n'{self.type}' is not a valid type!"
+                                 f"\nPlease provide the type as - 'transits' or 'transients'")
+        except Exception as e:
+            print(e)
+            exit()
+
     def read_data(self):
         #
         # Load the pickle file
@@ -290,7 +306,7 @@ if __name__ == '__main__':
 
     data = GenerateData(type="transients", path="../transients/data/transients.pickle", n_filters=1)
     X_train = data.extract_data()
-    vae = VariationalAutoEncoder(X_train=X_train, epochs=2, batch_size=50, latent_dim=10, type="transients")
+    vae = VariationalAutoEncoder(X_train=X_train, epochs=100, batch_size=250, latent_dim=10, type="transients")
     vae.fit_transform()
 
 
