@@ -18,8 +18,8 @@ class TSFresh(object):
 
     """
 
-    TSFresh is a feature extraction tool applied with an Unsupervised Random Forest Classifier
-    for dimensionality reduction of the light curves from NASA's TESS telescope.
+    TSFresh is a feature extraction tool applied with an Unsupervised Random Forest Classifier (URF)
+    or Kernel PCA (KPCA) for dimensionality reduction of the light curves from NASA's TESS telescope.
 
     The light curves are available in the folder -
         -- ../transients/data/transients.pickle
@@ -34,8 +34,6 @@ class TSFresh(object):
     n_features: int (default = 10)
         number of features in the latent space
 
-    tsfresh_data: pandas-dataframe
-        tsfresh compatible dataframe
 
     """
 
@@ -212,11 +210,12 @@ class TSFresh(object):
                 tsfresh_data = pickle.load(file)
         except Exception as e:
             print(f"\nFileNotFound: Unable to load the .pickle file!\n")
-            return
+            exit()
         #
         # Extract - n_features - using KPCA or URF
         #
         try:
+            labels = tsfresh_data.index.to_list()
             #
             # Convert the dataframe to numpy array
             #
@@ -226,6 +225,8 @@ class TSFresh(object):
             #
             if method == "URF":
                 feature_list = list()
+                feature_imp = dict()
+                col = tsfresh_data.columns
                 #
                 # Default parameters for Unsupervised RF
                 #
@@ -237,38 +238,37 @@ class TSFresh(object):
                    'bootstrap': False,
                    'n_samples': extracted_features.shape[0],
                    'n_estimators': 100,
-                   'random_state': 0
+                   'random_state': 0,
+                   'type': self.type,
+                   'extract_type': 'tsfresh'
                    }
                 #
                 # Initialize Unsupervised RF classifier
                 #
                 URF = UnsupervisedRandomForest(**params)
                 #
-                # Generate synthetic data with labels
-                #
-                X, y = URF.generate_data()
-                #
-                # Fit the data to the classifier
-                #
-                URF.fit(X, y)
-                #
                 # Get the important features
                 #
-                features = URF.get_feature_importance(plot=False)
+                features = URF.get_feature_importance()
 
                 for i in range(self.n_features):
                     idx, val = features[i][0], features[i][1]
                     feature_list.append(idx)
+                    feature_imp[col[idx]] = val
                 #
                 # Reshape the dataframe
                 #
                 extracted_df = tsfresh_data.iloc[:, feature_list]
                 extracted_df = extracted_df.reset_index(drop=True)
                 #
+                # Create dictionary to add metadata
+                #
+                data = {'data':extracted_df, 'labels':labels, 'feature_imp': feature_imp}
+                #
                 # Store the file in -- '/latent_space_data/{type}/' folder
                 #
                 with open(f"../latent_space_data/{self.type}/tsfresh.pickle", 'wb') as file:
-                    pickle.dump(extracted_df, file)
+                    pickle.dump(data, file)
 
                 print(f"\nTSFresh latent space data is extracted and stored "
                       f"in -- /latent_space_data/{self.type} -- folder!\n")
@@ -287,6 +287,22 @@ class TSFresh(object):
                 #
                 k_pca.transform(tsfresh=True)
                 #
+                # Load the Kernel PCA transformed data and add metadata to the file
+                #
+                try:
+                    with open(f"../latent_space_data/transients/tsfresh.pickle", 'rb') as file:
+                        data_ = pickle.load(file)
+                    data = {'data':data_, 'labels':labels}
+                    #
+                    # Store the file in -- '/latent_space_data/{type}/' folder
+                    #
+                    with open(f"../latent_space_data/{self.type}/tsfresh.pickle", 'wb') as file:
+                        pickle.dump(data, file)
+
+                except Exception as e:
+                    print(f"\nUnknownError: {e}\n")
+                    return
+                #
                 #
                 #
                 print(f"\nTSFresh latent space data is extracted and stored "
@@ -303,7 +319,7 @@ if __name__ == '__main__':
     tsfresh = TSFresh(type="transients")
     tsfresh.generate_data(path="../transients/data/transients.pickle")
     tsfresh.extract_features(path="../transients/data/tsfresh_data.pickle")
-    tsfresh.get_important_features(path="../transients/data/tsfresh_data.pickle", method="URF")
+    tsfresh.get_important_features(path="../transients/data/tsfresh_data.pickle", method="KPCA")
 
 
 

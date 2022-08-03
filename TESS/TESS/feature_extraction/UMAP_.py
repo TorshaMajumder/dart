@@ -102,7 +102,7 @@ class UMap(object):
         print(f"\nData is generated!\n")
 
 
-    def fit_transform(self):
+    def fit_transform(self, visualize=True):
 
         """
         Fits and Transforms the data using UMAP
@@ -130,20 +130,25 @@ class UMap(object):
         except Exception as e:
             print(f"\nUnknownError: {e}\n")
             return
-        #
-        #
-        #
-        print(f"\nData has been fitted and transformed using UMAP!\n")
-        #
-        # Store the file in -- '/latent_space_data/{type}/' folder
-        #
-        with open(f"../latent_space_data/{self.type}/umap.pickle", 'wb') as file:
-            pickle.dump(transformed_data, file)
-        #
-        #
-        #
-        print(f"\nUMAP latent space data is extracted and stored "
-              f"in -- /latent_space_data/{self.type} -- folder!\n")
+
+        if visualize:
+            return transformed_data
+
+        else:
+            #
+            #
+            #
+            print(f"\nData has been fitted and transformed using UMAP!\n")
+            #
+            # Store the file in -- '/latent_space_data/{type}/' folder
+            #
+            with open(f"../latent_space_data/{self.type}/umap.pickle", 'wb') as file:
+                pickle.dump(transformed_data, file)
+            #
+            #
+            #
+            print(f"\nUMAP latent space data is extracted and stored "
+                  f"in -- /latent_space_data/{self.type} -- folder!\n")
 
 
 if __name__ == '__main__':

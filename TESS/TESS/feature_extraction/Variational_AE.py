@@ -140,8 +140,8 @@ class VariationalAutoEncoder(object):
             #
             # Save the encoded and decoded data
             #
-            self.encoded_data = encoded_flux
-            self.decoded_data = decoded_data
+            self.encoded_data = encoded_flux.numpy()
+            self.decoded_data = decoded_data.numpy()
             #
             #
             #
@@ -151,11 +151,6 @@ class VariationalAutoEncoder(object):
             #
             with open(f"../latent_space_data/{self.type}/vae.pickle", 'wb') as file:
                 pickle.dump(self.encoded_data, file)
-            #
-            #
-            #
-            print(f"\nVAE latent space data is extracted and stored "
-                  f"in -- /latent_space_data/{self.type} -- folder!\n")
 
         except Exception as e:
             print(f"\nException Raised: {e}\n")
@@ -184,6 +179,7 @@ class GenerateData(object):
 
         self.type = type
         self.path = path
+        self.labels = None
         self.n_filters = n_filters
 
         try:
@@ -203,26 +199,26 @@ class GenerateData(object):
                 lightcurves = pickle.load(file)
         except Exception as e:
             print(f"\nFileNotFound: Unable to load the .pickle file!\n")
-            return
+            exit()
         #
         #
         #
         try:
             flux = lightcurves['flux']
             flux_err = lightcurves['flux_err']
-            meta_data = lightcurves['metadata']
+            self.labels = lightcurves['metadata']
             #
             # Check the type of the file
             #
             if self.type == "transients":
                 time = lightcurves['time']
                 print(f"\nData is extracted!\n")
-                return time, flux, flux_err, meta_data
+                return time, flux, flux_err
 
             elif self.type == "transits":
                 phase = lightcurves['phase']
                 print(f"\nData is extracted!\n")
-                return phase, flux, flux_err, meta_data
+                return phase, flux, flux_err
 
 
             else:
@@ -237,9 +233,9 @@ class GenerateData(object):
 
         try:
             if self.n_filters == 1:
-                time_phase, flux, flux_err, meta_data = self.read_data()
+                time_phase, flux, flux_err= self.read_data()
                 flux = flux.reshape((flux.shape[0], flux.shape[1], self.n_filters))
-                return flux
+                return flux, self.labels
 
             elif self.n_filters > 1:
                 raise NotImplementedError(f"\nNotImplementedError: Unable to accept more than one filter.\n")
@@ -247,6 +243,31 @@ class GenerateData(object):
         except Exception as e:
             print(e)
             return
+
+    def save_data(self):
+        #
+        # Load the VAE transformed data and add metadata to the file
+        #
+        try:
+            with open(f"../latent_space_data/transients/vae.pickle", 'rb') as file:
+                data_ = pickle.load(file)
+            data = {'data':data_, 'labels':self.labels}
+            #
+            # Store the file in -- '/latent_space_data/{type}/' folder
+            #
+            with open(f"../latent_space_data/{self.type}/vae.pickle", 'wb') as file:
+                pickle.dump(data, file)
+
+        except Exception as e:
+            print(f"\nUnknownError: {e}\n")
+            return
+
+        #
+        #
+        #
+        print(f"\nVAE latent space data is extracted and stored "
+              f"in -- /latent_space_data/{self.type} -- folder!\n")
+
 
 
 class Sampling(tf.keras.layers.Layer):
@@ -305,9 +326,10 @@ class GenerateModel(tf.keras.Model):
 if __name__ == '__main__':
 
     data = GenerateData(type="transients", path="../transients/data/transients.pickle", n_filters=1)
-    X_train = data.extract_data()
-    vae = VariationalAutoEncoder(X_train=X_train, epochs=100, batch_size=250, latent_dim=10, type="transients")
+    X_train, labels = data.extract_data()
+    vae = VariationalAutoEncoder(X_train=X_train, epochs=50, batch_size=250, latent_dim=10, type="transients")
     vae.fit_transform()
+    data.save_data()
 
 
 

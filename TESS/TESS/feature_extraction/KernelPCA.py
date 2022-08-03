@@ -70,6 +70,7 @@ class Kernel_PCA(object):
         self.PCA_decoder = None
         self.fit_inverse_transform = fit_inverse_transform
         self.n_jobs = n_jobs
+        self.labels = None
 
         try:
             if self.type not in ["transits", "transients"]:
@@ -100,13 +101,14 @@ class Kernel_PCA(object):
                 lightcurves = pickle.load(file)
         except Exception as e:
             print(f"\nFileNotFound: Unable to load the .pickle file!\n")
+            exit()
         #
         #
         #
         try:
             flux = lightcurves['flux']
             flux_err = lightcurves['flux_err']
-            meta_data = lightcurves['metadata']
+            self.labels = lightcurves['metadata']
 
             #
             # Check the type of the file
@@ -126,7 +128,7 @@ class Kernel_PCA(object):
         except Exception as e:
             print(e)
             return
-
+        print(self.labels, len(self.labels))
         print(f"\nData is generated!\n")
 
 
@@ -181,6 +183,10 @@ class Kernel_PCA(object):
         try:
             transformed_data = self.PCA_Estimator.transform(self.X)
             self.PCA_decoder = self.PCA_Estimator.inverse_transform(transformed_data)
+            #
+            # Create dictionary to add metadata
+            #
+            data = {'data': transformed_data, 'labels':self.labels}
 
         except Exception as e:
             print(f"\nUnknownError: {e}\n")
@@ -203,7 +209,7 @@ class Kernel_PCA(object):
             # Store the file in -- '/latent_space_data/{type}/' folder
             #
             with open(f"../latent_space_data/{self.type}/k_pca.pickle", 'wb') as file:
-                pickle.dump(transformed_data, file)
+                pickle.dump(data, file)
             #
             #
             #
