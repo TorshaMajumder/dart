@@ -3,6 +3,8 @@
 #
 import os
 import pickle
+
+import numpy as np
 import tensorflow as tf
 #
 # Create '/latent_space_data' folder if it does not exists already
@@ -50,7 +52,7 @@ class VariationalAutoEncoder(object):
     """
 
     def __init__(self, X_train=None, epochs=100, batch_size=None, n_filters=1,
-                 latent_dim=10, n_neurons=100, type=None):
+                 latent_dim=10, n_neurons=100, type=None, input_dim=1):
 
         self.type = type
         self.Encoder = None
@@ -59,6 +61,7 @@ class VariationalAutoEncoder(object):
         self.X_train = X_train
         self.encoded_data = None
         self.decoded_data = None
+        self.input_dim = input_dim
         self.n_filters = n_filters
         self.n_neurons = n_neurons
         self.latent_dim = latent_dim
@@ -79,7 +82,7 @@ class VariationalAutoEncoder(object):
         The encoder of the Variational Auto-Encoder
         """
 
-        input = tf.keras.Input((self.n_features, self.n_filters))
+        input = tf.keras.Input((self.n_features, self.input_dim))
 
         x = tf.keras.layers.GRU(self.n_neurons, return_sequences=True, activation='tanh', recurrent_activation='hard_sigmoid')(input)
         x = tf.keras.layers.GRU(self.n_neurons, return_sequences=True, activation='relu', recurrent_activation='hard_sigmoid')(x)
@@ -104,7 +107,7 @@ class VariationalAutoEncoder(object):
         x = tf.keras.layers.GRU(self.n_neurons, return_sequences=True, activation='tanh', recurrent_activation='hard_sigmoid')(repeater)
         x = tf.keras.layers.GRU(self.n_neurons, return_sequences=True, activation='tanh', recurrent_activation='hard_sigmoid')(x)
 
-        decoder_output = tf.keras.layers.TimeDistributed(tf.keras.layers.Dense(self.n_filters, activation='tanh'))(x)
+        decoder_output = tf.keras.layers.TimeDistributed(tf.keras.layers.Dense(self.input_dim, activation='tanh'))(x)
         decoder = tf.keras.Model([latent_inputs, ], decoder_output, name="decoder")
 
         return decoder
@@ -159,7 +162,7 @@ class VariationalAutoEncoder(object):
 
 class GenerateData(object):
 
-    def __init__(self, type=None, n_filters=1, path=None):
+    def __init__(self, type=None, n_filters=1, path=None, columns=None):
 
         """
         Generates data for Variational Auto-Encoder
@@ -181,11 +184,21 @@ class GenerateData(object):
         self.path = path
         self.labels = None
         self.n_filters = n_filters
+        self.columns = columns
 
         try:
             if self.type not in ["transits", "transients"]:
                 raise ValueError(f"\n'{self.type}' is not a valid type!"
                                  f"\nPlease provide the type as - 'transits' or 'transients'")
+        except Exception as e:
+            print(e)
+            exit()
+
+        try:
+            for i in self.columns:
+                if i not in ["flux", "flux_err", "time_phase"]:
+                    raise ValueError(f"\n'{i}' is not a valid columns!"
+                                     f"\nPlease provide columns as - 'flux', 'flux_err', 'time_phase'")
         except Exception as e:
             print(e)
             exit()
@@ -212,12 +225,12 @@ class GenerateData(object):
             #
             if self.type == "transients":
                 time = lightcurves['time']
-                print(f"\nData is extracted!\n")
+
                 return time, flux, flux_err
 
             elif self.type == "transits":
                 phase = lightcurves['phase']
-                print(f"\nData is extracted!\n")
+
                 return phase, flux, flux_err
 
 
@@ -230,19 +243,68 @@ class GenerateData(object):
             return
 
     def extract_data(self):
-
+        #
+        # Generate data for filters
+        #
         try:
             if self.n_filters == 1:
-                time_phase, flux, flux_err= self.read_data()
-                flux = flux.reshape((flux.shape[0], flux.shape[1], self.n_filters))
-                return flux, self.labels
+
+                time_phase, flux, flux_err = self.read_data()
+
+                if len(self.columns) == 1:
+                    if self.columns[0] != "flux":
+                        raise ValueError(f"\n'flux' column is mandatory to train the VAE. "
+                                         f"Please provide 'flux' as the column.\n")
+                    else:
+                        flux = flux.reshape((flux.shape[0], flux.shape[1], 1))
+                        print(f"\nData is extracted!\n")
+                        return flux, self.labels, self.n_filters*1
+
+                elif len(self.columns) == 2:
+                    if "flux" not in self.columns:
+                        raise ValueError(f"\n'flux' column is mandatory to train the VAE. "
+                                         f"Please provide 'flux' as one of the columns.\n")
+                    else:
+                        flux = flux.reshape((flux.shape[0], flux.shape[1], 1))
+
+                        if "time_phase" in self.columns:
+
+                            time_phase = np.tile(time_phase, flux.shape[0])
+                            time_phase = time_phase.reshape((flux.shape[0], flux.shape[1], 1))
+                            data = np.concatenate((flux, time_phase), axis=2)
+                            data = data.reshape((flux.shape[0], flux.shape[1], 2))
+                            print(f"\nData is extracted!\n")
+                            return data, self.labels, self.n_filters*1+1
+
+                        elif "flux_err" in self.columns:
+
+                            flux_err = flux_err.reshape((flux_err.shape[0], flux_err.shape[1], 1))
+                            data = np.concatenate((flux, flux_err), axis=2)
+                            data = data.reshape((flux.shape[0], flux.shape[1], 2))
+                            print(f"\nData is extracted!\n")
+                            return data, self.labels, self.n_filters*2
+
+                elif len(self.columns) == 3:
+
+                    flux = flux.reshape((flux.shape[0], flux.shape[1], 1))
+                    flux_err = flux_err.reshape((flux_err.shape[0], flux_err.shape[1], 1))
+                    time_phase = np.tile(time_phase, flux.shape[0])
+                    time_phase = time_phase.reshape((flux.shape[0], flux.shape[1], 1))
+                    data = np.concatenate((flux, flux_err, time_phase), axis=2)
+                    data = data.reshape((flux.shape[0], flux.shape[1], 3))
+                    print(f"\nData is extracted!\n")
+                    return data, self.labels, self.n_filters*2+1
+
+                else:
+                    raise ValueError(f"\nColumns cannot be more than three."
+                                     f"\nPlease provide columns as - 'flux', 'flux_err', 'time_phase'\n")
 
             elif self.n_filters > 1:
                 raise NotImplementedError(f"\nNotImplementedError: Unable to accept more than one filter.\n")
 
         except Exception as e:
             print(e)
-            return
+            exit()
 
     def save_data(self):
         #
@@ -261,7 +323,6 @@ class GenerateData(object):
         except Exception as e:
             print(f"\nUnknownError: {e}\n")
             return
-
         #
         #
         #
@@ -325,9 +386,11 @@ class GenerateModel(tf.keras.Model):
 
 if __name__ == '__main__':
 
-    data = GenerateData(type="transients", path="../transients/data/transients.pickle", n_filters=1)
-    X_train, labels = data.extract_data()
-    vae = VariationalAutoEncoder(X_train=X_train, epochs=50, batch_size=250, latent_dim=10, type="transients")
+    data = GenerateData(type="transients", path="../transients/data/transients.pickle",
+                        n_filters=1, columns=['flux', 'flux_err'])
+    X_train, labels, input_shape = data.extract_data()
+    vae = VariationalAutoEncoder(X_train=X_train, epochs=2, batch_size=50, latent_dim=10,
+                                 type="transients", input_dim=input_shape)
     vae.fit_transform()
     data.save_data()
 
