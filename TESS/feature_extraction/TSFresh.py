@@ -229,9 +229,6 @@ class TSFresh(object):
             col = tsfresh_data.columns
 
             if method == "URF":
-                # feature_list = list()
-                # feature_imp = dict()
-                # col = tsfresh_data.columns
                 #
                 # Default parameters for Unsupervised RF
                 #
@@ -311,10 +308,6 @@ class TSFresh(object):
                 # Load the Kernel PCA transformed data and add metadata to the file
                 #
                 try:
-                    # with open(f"../latent_space_data/transients/tsfresh.pickle", 'rb') as file:
-                    #     data = pickle.load(file)
-                    #
-                    # data['labels'] = self.labels
                     #
                     # Store the file in -- '/latent_space_data/{type}/' folder
                     #
