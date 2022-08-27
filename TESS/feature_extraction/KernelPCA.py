@@ -152,15 +152,7 @@ class Kernel_PCA(object):
             #
             self.eigenvectors = self.PCA_Estimator.eigenvectors_
             self.eigenvalues = self.PCA_Estimator.eigenvalues_
-            #print(self.eigenvectors.shape)
-            #print(abs(self.eigenvectors[0:2,:]))
-            # features_score = abs(self.eigenvectors[:, 0])
-            # features = np.arange(self.n_features)
-            # feature_set = [y for x,y in zip(selected_features, features) if x]
-            # feature_set_score=features_score[selected_features]
-            # sorted_set = sorted(zip(features, features_score), key=lambda x: x[1], reverse=True)
-            # print(sorted_set)
-            #return sorted_set
+
 
         except Exception as e:
             print(f"\nUnknownError: {e}\n")
@@ -192,9 +184,6 @@ class Kernel_PCA(object):
         try:
             transformed_data = self.PCA_Estimator.transform(self.X)
             self.PCA_decoder = self.PCA_Estimator.inverse_transform(transformed_data)
-            # x = np.unique(self.eigenvalues)
-            # print("test::",x[0], x[1], x[2], x[3], x[4], self.eigenvalues[0], self.eigenvalues[1], self.eigenvalues[2])
-            # print(self.eigenvalues.shape, transformed_data.shape)
 
 
         except Exception as e:
