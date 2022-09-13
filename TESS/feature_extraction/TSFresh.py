@@ -111,6 +111,7 @@ class TSFresh(object):
         # with the column names specified in the variable -- columns
         #
         tsfresh_df = pd.DataFrame(data, columns=columns)
+        tsfresh_df = tsfresh_df.drop(columns=["ID"])
         #
         # Store the dataframe
         #
@@ -175,7 +176,7 @@ class TSFresh(object):
         print(f"\nTSFresh features are extracted and stored in -- {path}!\n")
 
 
-    def get_important_features(self, path=None, method="URF"):
+    def get_important_features(self, path=None, method="urf"):
 
         """
         Generates Unsupervised Random Forest extracted important features
@@ -185,8 +186,8 @@ class TSFresh(object):
         path: string
             the file location of the TSFresh extracted features
 
-        method: string (default = URF)
-            method to extract 'n_features' using - Kernel_PCA (KPCA) or Unsupervised_RF (URF)
+        method: string (default = urf)
+            method to extract 'n_features' using - Kernel_PCA (k_pca) or Unsupervised_RF (urf)
 
         """
         #
@@ -198,8 +199,8 @@ class TSFresh(object):
         # Validate the method type
         #
         try:
-            if method not in ["URF", "KPCA"]:
-                raise ValueError(f"\nValueError: Unknown method type!\nPlease provide method as URF or KPCA.\n")
+            if method not in ["urf", "k_pca"]:
+                raise TypeError(f"\nTypeError: Unknown method type!\nPlease provide method as urf or k_pca.\n")
         except Exception as e:
             print(e)
             return
@@ -212,8 +213,11 @@ class TSFresh(object):
         except Exception as e:
             print(f"\nFileNotFound: Unable to load the .pickle file!\n")
             exit()
+        nunique = tsfresh_data.nunique()
+        cols_to_drop = nunique[nunique == 1].index
+        tsfresh_data = tsfresh_data.drop(cols_to_drop, axis=1)
         #
-        # Extract - n_features - using KPCA or URF
+        # Extract - n_features - using k_pca or urf
         #
         try:
             self.labels = tsfresh_data.index.to_list()
@@ -228,7 +232,7 @@ class TSFresh(object):
             feature_imp = dict()
             col = tsfresh_data.columns
 
-            if method == "URF":
+            if method == "urf":
                 #
                 # Default parameters for Unsupervised RF
                 #
@@ -265,7 +269,7 @@ class TSFresh(object):
                 #
                 # Create dictionary to add metadata
                 #
-                data = {'data':extracted_df, 'labels':self.labels, 'feature_imp': feature_imp}
+                data = {'data': extracted_df, 'labels': self.labels, 'feature_imp': feature_imp}
                 #
                 # Store the file in -- '/latent_space_data/{type}/' folder
                 #
@@ -275,7 +279,7 @@ class TSFresh(object):
                 print(f"\nTSFresh latent space data is extracted and stored "
                       f"in -- /latent_space_data/{self.type} -- folder!\n")
 
-            elif method == "KPCA":
+            elif method == "k_pca":
                 #
                 # Initialize Kernel_PCA classifier
                 #
@@ -294,7 +298,6 @@ class TSFresh(object):
                     idx, val = features[i][0], features[i][1]
                     feature_list.append(idx)
                     feature_imp[col[idx]] = val
-
                 #
                 # Reshape the dataframe
                 #
@@ -332,9 +335,9 @@ class TSFresh(object):
 if __name__ == '__main__':
 
     tsfresh = TSFresh(lc_type="transients")
-    tsfresh.generate_data(path="../transients/data/transients.pickle")
-    tsfresh.extract_features(path="../transients/data/tsfresh_data.pickle")
-    tsfresh.get_important_features(path="../transients/data/tsfresh_data.pickle", method="KPCA")
+    # tsfresh.generate_data(path="../transients/data/transients.pickle")
+    # tsfresh.extract_features(path="../transients/data/tsfresh_data.pickle")
+    tsfresh.get_important_features(path="../transients/data/tsfresh_data.pickle", method="URF")
 
 
 
