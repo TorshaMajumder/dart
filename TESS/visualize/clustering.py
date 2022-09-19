@@ -29,7 +29,7 @@ if not os.path.exists('images'):
 
 
 def generate_data(X=None, lc_type='transients', filename=None, image_path=None,
-                  method=None, viz_method=None, lc_labels=None):
+                  method=None, viz_method=None, lc_labels=None, extract_type=None):
 
     """"
     Generates a dataframe to visualize the clusters
@@ -48,6 +48,9 @@ def generate_data(X=None, lc_type='transients', filename=None, image_path=None,
 
     method: String
         clustering methods - birch or hdbscan
+
+    extract_type: String
+        feature extraction methods - k_pca, tsfresh, or vae
 
     viz_method: String
         visualization methods - umap or tsne
@@ -95,6 +98,13 @@ def generate_data(X=None, lc_type='transients', filename=None, image_path=None,
         print(e)
         exit()
     try:
+        if extract_type not in ["k_pca", "tsfresh", "vae"]:
+            raise TypeError(f"\nTypeError: '{extract_type}' is not a valid extract_type!"
+                            f"\nPlease provide the extract_type as - 'k_pca' , 'tsfresh', or 'vae'")
+    except Exception as e:
+        print(e)
+        exit()
+    try:
         if method not in ["birch", "hdbscan"]:
             raise TypeError(f"\nTypeError: '{method}' is not a valid method!"
                             f"\nPlease provide the method as - 'birch' or 'hdbscan'")
@@ -121,11 +131,6 @@ def generate_data(X=None, lc_type='transients', filename=None, image_path=None,
         print(f"\nFileNotFoundError: Images cannot be loaded!"
               f"\nPlease verify if the folder - {image_path} - exists.\n")
         exit()
-    #
-    # Create a 'images/{lc_type}/clustering' folder if it does not exists already
-    #
-    if not os.path.exists(f'images/{lc_type}/clustering/{method}/'):
-        os.makedirs(f'images/{lc_type}/clustering/{method}/')
     #
     # Load the transient types and sub-types
     #
@@ -252,8 +257,8 @@ def generate_data(X=None, lc_type='transients', filename=None, image_path=None,
             #
             # Create a 'images/{lc_type}/clustering/cluster{i}' folder if it does not exists already
             #
-            if not os.path.exists(f'images/{lc_type}/{method}/clustering/cluster_{i}'):
-                os.makedirs(f'images/{lc_type}/clustering/{method}/cluster_{i}')
+            if not os.path.exists(f'images/{lc_type}/clustering/{method}_{extract_type}/cluster_{i}'):
+                os.makedirs(f'images/{lc_type}/clustering/{method}_{extract_type}/cluster_{i}')
             #
             # Store the IAU_Name for individual clusters
             #
@@ -264,7 +269,7 @@ def generate_data(X=None, lc_type='transients', filename=None, image_path=None,
             for id_ in range(len(ids)):
                 file = ids[id_][0]+'.png'
                 if file in file_list:
-                    shutil.copy(f"processed/{file}", f"images/{lc_type}/clustering/{method}/cluster_{i}")
+                    shutil.copy(f"processed/{file}", f"images/{lc_type}/clustering/{method}_{extract_type}/cluster_{i}")
     except Exception as e:
         print(f"\nUnable to store the cluster images!"
               f"\nException Raised: {e}\n")
@@ -481,7 +486,7 @@ def visualize_clusters(data=None, convex_hull=True, viz_method="umap", method=No
     return
 
 
-def visualize_sub_clusters(data=None, viz_method="umap", method=None, extract_type=None, lc_type='transients'):
+def visualize_sub_clusters(data=None, viz_method=None, method=None, extract_type=None, lc_type='transients'):
     """"
     Generates a plot to visualize the sub-clusters
 
@@ -687,8 +692,8 @@ def visualize_sub_clusters(data=None, viz_method="umap", method=None, extract_ty
             #
             #
             axs[r].set_title(f"Cluster : {clusters[c_id]+1}", fontsize=18, **csfont)
-            axs[r].set_xlabel(f'{viz_method} Feature #1', fontsize=13, **csfont)
-            axs[r].set_ylabel(f'{viz_method} Feature #2', fontsize=13, **csfont)
+            axs[r].set_xlabel(f'{label3} Feature #1', fontsize=13, **csfont)
+            axs[r].set_ylabel(f'{label3} Feature #2', fontsize=13, **csfont)
             axs[r].tick_params(axis='x', labelsize=10)
             axs[r].tick_params(axis='y', labelsize=10)
             #
@@ -755,10 +760,11 @@ if __name__ == '__main__':
 
     data = load_latent_space(extract_type='vae')
     X_train, labels = data['data'], data['labels']
-    data_info = generate_data(lc_type="transients", filename="birch_vae.pickle", method='birch',
-                              viz_method='tsne', image_path="processed/", X=X_train, lc_labels=labels)
-    visualize_clusters(data=data_info, convex_hull=True, viz_method="umap", method="birch",
+    data_info = generate_data(lc_type="transients", filename="hdbscan_vae.pickle", method='hdbscan',
+                              viz_method='umap', image_path="processed/", X=X_train, lc_labels=labels,
+                              extract_type='vae')
+    visualize_clusters(data=data_info, convex_hull=True, viz_method="umap", method="hdbscan",
                        extract_type="vae")
-    visualize_sub_clusters(data=data_info, viz_method="umap", method="birch",
+    visualize_sub_clusters(data=data_info, viz_method="umap", method="hdbscan",
                            extract_type="vae")
 

@@ -443,7 +443,7 @@ class TESS_Transients(object):
         transients['flux'] = flux
         transients['flux_err'] = flux_err
         transients['time'] = np.arange(0, 30, 0.5)
-        transients['meta_data'] = meta_data
+        transients['metadata'] = meta_data
 
         #
         # Store the files
@@ -465,7 +465,7 @@ class TESS_Transients(object):
 
 
 
-    def generate_tic_image(self, path=None):
+    def generate_transient_image(self, path=None):
 
         """
          Generates images for all the available transients in '/images'
@@ -478,6 +478,7 @@ class TESS_Transients(object):
         """
         #
         file_list = list()
+        csfont = {'fontname':'Comic Sans MS'}
         #
         # Create a '/images' folder if it does not exists already
         #
@@ -512,7 +513,7 @@ class TESS_Transients(object):
                     if id < len(file_list):
                         t_id = file_list[id][:-7]
                         label = ids[t_id]
-                        axs[i].set_title(f"IAU Name : {t_id}  -----  Label : {label}", fontsize=25)
+                        axs[i].set_title(f"IAU Name : {t_id}  -----  Label : {label}", fontsize=25, **csfont)
                         binned_lc = pd.read_csv(f"{path}/{file_list[id]}", compression='gzip')
                         x = np.array(binned_lc['time'])
                         y = np.array(binned_lc['flux'])
@@ -521,8 +522,8 @@ class TESS_Transients(object):
                         axs[i].grid(color='black', linestyle='-.', linewidth=0.5)
                         axs[i].errorbar(x, y, yerr=e, fmt='o', color='black', ecolor='lightgray',
                                         elinewidth=4, capsize=0)
-                        axs[i].set_xlabel('Time', fontsize=18)
-                        axs[i].set_ylabel('Flux', fontsize=18)
+                        axs[i].set_xlabel('Time', fontsize=18, **csfont)
+                        axs[i].set_ylabel('Flux', fontsize=18, **csfont)
                         axs[i].tick_params(axis='x', labelsize=15)
                         axs[i].tick_params(axis='y', labelsize=15)
                         id += 1
@@ -550,4 +551,4 @@ if __name__ == '__main__':
     create_transients.generate_transients(filename="transients.txt")
     create_transients.save_transients(path="./processed_curves/")
     create_transients.preprocess_transients(path="./processed_transients/")
-    create_transients.generate_tic_image(path='./processed_transients')
+    create_transients.generate_transient_image(path='./processed_transients')

@@ -223,7 +223,7 @@ class Isolation_Forest(object):
 
 if __name__ == '__main__':
 
-    data = load_latent_space(extract_type='vae')
+    data = load_latent_space(extract_type='tsfresh')
     X_train, labels = data['data'], data['labels']
     params = { 'X': X_train,
                'n_features': X_train.shape[1],
@@ -236,7 +236,7 @@ if __name__ == '__main__':
                'n_samples': X_train.shape[0],
                'labels': labels,
                'lc_type': 'transients',
-               'extract_type': 'vae'
+               'extract_type': 'tsfresh'
                }
 
     IForest = Isolation_Forest(**params)

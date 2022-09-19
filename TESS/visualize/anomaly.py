@@ -162,6 +162,12 @@ def visualize_anomaly_with_sns(data=None, extract_type=None, method=None, lc_typ
     # Declare the variables
     #
     n_ttypes = len(data['Transient_Type'].unique())
+    urf_xticks = (0.6, 1.0)
+    #
+    # Create a 'images/{lc_type}/anomaly/' folder if it does not exists already
+    #
+    if not os.path.exists(f'images/{lc_type}/anomaly/'):
+        os.makedirs(f'images/{lc_type}/anomaly/')
     #
     #
     #
@@ -191,7 +197,7 @@ def visualize_anomaly_with_sns(data=None, extract_type=None, method=None, lc_typ
         print(e)
         exit()
     try:
-        if method not in ["iforest", "urf"]:
+        if method not in ["iforest", "urf", "hdbscan"]:
             raise TypeError(f"\nTypeError: '{method}' is not a valid method!"
                             f"\nPlease provide the method as - 'iforest' or 'urf'")
         else:
@@ -202,6 +208,8 @@ def visualize_anomaly_with_sns(data=None, extract_type=None, method=None, lc_typ
                 label1 = "Isolation Forest"
             elif method == "urf":
                 label1 = "Unsupervised Random Forest"
+            elif method == "hdbscan":
+                label1 = "HDBSCAN"
     except Exception as e:
         print(e)
         exit()
@@ -235,7 +243,7 @@ def visualize_anomaly_with_sns(data=None, extract_type=None, method=None, lc_typ
         #
         i += 1
     #
-    # Create a 'images/{lc_type}/pdf' folder if it does not exists already
+    # Create a 'images/{lc_type}/anomaly/pdf' folder if it does not exists already
     #
     if not os.path.exists(f'images/{lc_type}/anomaly/pdf'):
         os.makedirs(f'images/{lc_type}/anomaly/pdf')
@@ -277,6 +285,14 @@ def visualize_anomaly_with_joypy(data=None, extract_type=None, method=None, lc_t
     # Declare the variables
     #
     cmap = colors.ListedColormap(data['Transient_Type_Color'].unique())
+    urf_xticks = (0.65, 1.15)
+    iforest_xticks = (-0.4, 0.4)
+    hdbscan_xticks = (-0.2, 0.5)
+    #
+    # Create a 'images/{lc_type}/anomaly/' folder if it does not exists already
+    #
+    if not os.path.exists(f'images/{lc_type}/anomaly/'):
+        os.makedirs(f'images/{lc_type}/anomaly/')
     #
     #
     #
@@ -306,7 +322,7 @@ def visualize_anomaly_with_joypy(data=None, extract_type=None, method=None, lc_t
         print(e)
         exit()
     try:
-        if method not in ["iforest", "urf"]:
+        if method not in ["iforest", "urf", "hdbscan"]:
             raise TypeError(f"\nTypeError: '{method}' is not a valid method!"
                             f"\nPlease provide the method as - 'iforest' or 'urf'")
         else:
@@ -317,9 +333,20 @@ def visualize_anomaly_with_joypy(data=None, extract_type=None, method=None, lc_t
                 label1 = "Isolation Forest"
             elif method == "urf":
                 label1 = "Unsupervised Random Forest"
+            elif method == "hdbscan":
+                label1 = "HDBSCAN"
     except Exception as e:
         print(e)
         exit()
+    #
+    # Set the x_ticks for urf and iforest
+    #
+    if method == "iforest":
+        x_ticks = iforest_xticks
+    elif method == "hdbscan":
+        x_ticks = hdbscan_xticks
+    else:
+        x_ticks = urf_xticks
     #
     # Plot the images
     #
@@ -328,11 +355,16 @@ def visualize_anomaly_with_joypy(data=None, extract_type=None, method=None, lc_t
         by='Transient_Type',
         figsize=(8, 7),
         alpha=0.8,
-        x_range=(-0.4, 0.4),
+        x_range=x_ticks,
         colormap=[cmap],
         )
     plt.title(f'Anomaly Detection: {label1} ----- Feature Extraction: {label2}', **csfont, fontsize=12)
     plt.xlabel('Anomaly Score')
+    #
+    # Create a 'images/{lc_type}/anomaly/pdf' folder if it does not exists already
+    #
+    if not os.path.exists(f'images/{lc_type}/anomaly/pdf'):
+        os.makedirs(f'images/{lc_type}/anomaly/pdf')
     plt.savefig(f'images/{lc_type}/anomaly/pdf/{method}_{extract_type}_joypy.png', bbox_inches='tight')
 
     print(f"\nThe anomaly score plot is generated and stored in - "
@@ -343,7 +375,7 @@ def visualize_anomaly_with_joypy(data=None, extract_type=None, method=None, lc_t
 
 if __name__ == '__main__':
 
-    data_info = generate_data(lc_type="transients", filename="iforest_vae.pickle")
-    visualize_anomaly_with_joypy(data_info, lc_type="transients", extract_type="vae", method="iforest")
-    visualize_anomaly_with_sns(data_info, lc_type="transients", extract_type="vae", method="iforest")
+    data_info = generate_data(lc_type="transients", filename="urf_k_pca.pickle")
+    visualize_anomaly_with_joypy(data_info, lc_type="transients", extract_type="k_pca", method="urf")
+    visualize_anomaly_with_sns(data_info, lc_type="transients", extract_type="k_pca", method="urf")
 

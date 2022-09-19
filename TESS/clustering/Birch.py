@@ -142,12 +142,11 @@ class Birch_(object):
         return self.clusters
 
 
-
 if __name__ == '__main__':
 
-    data = load_latent_space(extract_type='vae')
+    data = load_latent_space(extract_type='tsfresh')
     X_train, labels = data['data'], data['labels']
-    brc = Birch_(n_clusters=4, threshold=0.005, labels=labels, lc_type='transients', extract_type='vae')
+    brc = Birch_(n_clusters=3, threshold=0.005, labels=labels, lc_type='transients', extract_type='tsfresh')
     brc.fit(X_train)
     clusters = brc.predict(X_train)
 

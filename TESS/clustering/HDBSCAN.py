@@ -138,12 +138,16 @@ class HDBSCAN_(object):
         #
         self.clusters = self.estimator.labels_
         self.anomaly_score = self.estimator.outlier_scores_
+        #
+        # Store the anomaly_index with the sorted anomaly_score
+        #
         self.anomaly_index = sorted(range(len(self.anomaly_score)), key=lambda i: self.anomaly_score[i])[-idx:]
         #
         # Prepare a dictionary using IAU Name, cluster index, anomaly index and anomaly score
         #
-        labels_cluster_anomaly = {'labels': self.labels, 'clusters': self.clusters,
-                                  'anomaly_score': self.anomaly_score, 'anomaly_index': self.anomaly_index}
+        cluster_labels = {'labels': self.labels, 'clusters': self.clusters}
+        anomaly_labels = {'labels': self.labels, 'anomaly_index': self.anomaly_index,
+                          'anomaly_score': self.anomaly_score}
         #
         # Create '/results/clustering/{type}/' folder if it does not exists already
         #
@@ -153,21 +157,36 @@ class HDBSCAN_(object):
         # Store the file in -- '/results/clustering/{type}/' folder
         #
         with open(f"../results/clustering/{self.type}/hdbscan_{self.extract_type}.pickle", 'wb') as file:
-            pickle.dump(labels_cluster_anomaly, file)
+            pickle.dump(cluster_labels, file)
         #
         #
         #
         print(f"\nClusters are generated and stored "
               f"in -- /results/clustering/{self.type} -- folder!\n")
+        #
+        # Create '/results/clustering/{type}/' folder if it does not exists already
+        #
+        if not os.path.exists(f"../results/anomaly_detection/{self.type}"):
+            os.makedirs(f"../results/anomaly_detection/{self.type}")
+        #
+        # Store the file in -- '/results/clustering/{type}/' folder
+        #
+        with open(f"../results/anomaly_detection/{self.type}/hdbscan_{self.extract_type}.pickle", 'wb') as file:
+            pickle.dump(anomaly_labels, file)
+        #
+        #
+        #
+        print(f"\nAnomaly scores are generated and stored "
+              f"in -- /results/anomaly_detection/{self.type} -- folder!\n")
 
         return self.clusters, self.anomaly_score, self.anomaly_index
 
 
 if __name__ == '__main__':
 
-    data = load_latent_space(extract_type='tsfresh')
+    data = load_latent_space(extract_type='vae')
     X_train, labels = data['data'], data['labels']
-    hdbscan_ = HDBSCAN_(labels=labels, lc_type='transients', extract_type='tsfresh', contamination=0.1)
+    hdbscan_ = HDBSCAN_(labels=labels, lc_type='transients', extract_type='vae', contamination=0.1)
     hdbscan_.fit(X_train)
     clusters, anomaly_score, anomaly_index = hdbscan_.predict(X_train)
 

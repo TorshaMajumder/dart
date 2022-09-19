@@ -335,9 +335,9 @@ class TSFresh(object):
 if __name__ == '__main__':
 
     tsfresh = TSFresh(lc_type="transients")
-    # tsfresh.generate_data(path="../transients/data/transients.pickle")
-    # tsfresh.extract_features(path="../transients/data/tsfresh_data.pickle")
-    tsfresh.get_important_features(path="../transients/data/tsfresh_data.pickle", method="URF")
+    tsfresh.generate_data(path="../transients/data/transients.pickle")
+    tsfresh.extract_features(path="../transients/data/tsfresh_data.pickle")
+    tsfresh.get_important_features(path="../transients/data/tsfresh_data.pickle", method="urf")
 
 
 

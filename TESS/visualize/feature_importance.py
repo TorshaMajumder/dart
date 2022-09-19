@@ -140,5 +140,5 @@ def get_feature_importance(lc_type='transients', imp_method=None):
 if __name__ == '__main__':
 
     tsfresh = TSFresh(lc_type="transients")
-    tsfresh.get_important_features(path="../transients/data/tsfresh_data.pickle", method="k_pca")
-    get_feature_importance(lc_type="transients", imp_method="k_pca")
+    tsfresh.get_important_features(path="../transients/data/tsfresh_data.pickle", method="urf")
+    get_feature_importance(lc_type="transients", imp_method="urf")

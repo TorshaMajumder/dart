@@ -338,7 +338,7 @@ class UnsupervisedRandomForest(object):
 
 if __name__ == '__main__':
 
-    data = load_latent_space(extract_type='k_pca')
+    data = load_latent_space(extract_type='vae')
     X_train, labels = data['data'], data['labels']
 
     params = { 'X': X_train,
@@ -353,7 +353,7 @@ if __name__ == '__main__':
               'labels': labels,
               'lc_type': 'transients',
               'contamination': 0.1,
-              'extract_type': 'k_pca'
+              'extract_type': 'vae'
             }
 
     URF = UnsupervisedRandomForest(**params)
