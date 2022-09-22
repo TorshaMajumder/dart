@@ -520,7 +520,7 @@ def visualize_sub_clusters(data=None, viz_method=None, method=None, extract_type
     m_ttypes_dict = dict()
     plot_kwds = {'alpha': 0.90, 's': 200, 'linewidths': 1.80}
     bbox_to_anchor_param = {4: [(1.35, 1.8), (1.3, 0.5)], 3: [(1.155, 3.1), (1.135, 0.6)],
-                            2: [(1.155, 2.1), (1.135, 0.6)]}
+                            2: [(1.155, 2.1), (1.135, 0.6)], 8: [(1.4, 5.1), (1.35, 0.6)]}
     #
     # Create a 'images/{lc_type}/clustering' folder if it does not exists already
     #
@@ -758,13 +758,13 @@ def visualize_sub_clusters(data=None, viz_method=None, method=None, extract_type
 
 if __name__ == '__main__':
 
-    data = load_latent_space(extract_type='vae')
+    data = load_latent_space(extract_type='tsfresh')
     X_train, labels = data['data'], data['labels']
-    data_info = generate_data(lc_type="transients", filename="hdbscan_vae.pickle", method='hdbscan',
+    data_info = generate_data(lc_type="transients", filename="birch_tsfresh.pickle", method='birch',
                               viz_method='umap', image_path="processed/", X=X_train, lc_labels=labels,
-                              extract_type='vae')
-    visualize_clusters(data=data_info, convex_hull=True, viz_method="umap", method="hdbscan",
-                       extract_type="vae")
-    visualize_sub_clusters(data=data_info, viz_method="umap", method="hdbscan",
-                           extract_type="vae")
+                              extract_type='tsfresh')
+    visualize_clusters(data=data_info, convex_hull=True, viz_method="umap", method="birch",
+                       extract_type="tsfresh")
+    visualize_sub_clusters(data=data_info, viz_method="umap", method="birch",
+                           extract_type="tsfresh")
 

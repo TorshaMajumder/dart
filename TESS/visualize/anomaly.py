@@ -154,7 +154,7 @@ def visualize_anomaly_with_sns(data=None, extract_type=None, method=None, lc_typ
 
     Returns
     -------
-    Generates images in -- images/{lc_type}/anomaly/pdf/ - folder
+    Generates images in -- images/{lc_type}/anomaly/ - folder
 
 
     """
@@ -243,16 +243,16 @@ def visualize_anomaly_with_sns(data=None, extract_type=None, method=None, lc_typ
         #
         i += 1
     #
-    # Create a 'images/{lc_type}/anomaly/pdf' folder if it does not exists already
+    # Create a 'images/{lc_type}/anomaly/' folder if it does not exists already
     #
-    if not os.path.exists(f'images/{lc_type}/anomaly/pdf'):
-        os.makedirs(f'images/{lc_type}/anomaly/pdf')
+    # if not os.path.exists(f'images/{lc_type}/anomaly/'):
+    #     os.makedirs(f'images/{lc_type}/anomaly/')
 
     plt.tight_layout(pad=1.5)
-    plt.savefig(f'images/{lc_type}/anomaly/pdf/{method}_{extract_type}_sns.png', bbox_inches='tight')
+    plt.savefig(f'images/{lc_type}/anomaly/{method}_{extract_type}_sns.png', bbox_inches='tight')
 
     print(f"\nThe anomaly score plot is generated and stored in - "
-          f"images/{lc_type}/anomaly/pdf/ - folder!\n")
+          f"images/{lc_type}/anomaly/ - folder!\n")
 
     return
 
@@ -277,7 +277,7 @@ def visualize_anomaly_with_joypy(data=None, extract_type=None, method=None, lc_t
 
     Returns
     --------
-    Generates images in -- images/{lc_type}/anomaly/pdf/ - folder
+    Generates images in -- images/{lc_type}/anomaly/ - folder
 
 
     """
@@ -363,19 +363,19 @@ def visualize_anomaly_with_joypy(data=None, extract_type=None, method=None, lc_t
     #
     # Create a 'images/{lc_type}/anomaly/pdf' folder if it does not exists already
     #
-    if not os.path.exists(f'images/{lc_type}/anomaly/pdf'):
-        os.makedirs(f'images/{lc_type}/anomaly/pdf')
-    plt.savefig(f'images/{lc_type}/anomaly/pdf/{method}_{extract_type}_joypy.png', bbox_inches='tight')
+    # if not os.path.exists(f'images/{lc_type}/anomaly/'):
+    #     os.makedirs(f'images/{lc_type}/anomaly/')
+    plt.savefig(f'images/{lc_type}/anomaly/{method}_{extract_type}_joypy.png', bbox_inches='tight')
 
     print(f"\nThe anomaly score plot is generated and stored in - "
-          f"images/{lc_type}/anomaly/pdf/ - folder!\n")
+          f"images/{lc_type}/anomaly/ - folder!\n")
 
     return
 
 
 if __name__ == '__main__':
 
-    data_info = generate_data(lc_type="transients", filename="urf_k_pca.pickle")
-    visualize_anomaly_with_joypy(data_info, lc_type="transients", extract_type="k_pca", method="urf")
-    visualize_anomaly_with_sns(data_info, lc_type="transients", extract_type="k_pca", method="urf")
+    data_info = generate_data(lc_type="transients", filename="hdbscan_tsfresh.pickle")
+    visualize_anomaly_with_joypy(data_info, lc_type="transients", extract_type="tsfresh", method="hdbscan")
+    visualize_anomaly_with_sns(data_info, lc_type="transients", extract_type="tsfresh", method="hdbscan")
 

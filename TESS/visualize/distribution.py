@@ -270,18 +270,18 @@ def visualize_dist(data=None, lc_type='transients'):
     plt.title( f"Data Distribution", **csfont, size=14)
     patches, texts = plt.pie(ttype_df["Transient_Type_Counts"], explode=explode,
                              colors=ttype_df["Transient_Type_Color"],
-                             startangle=90, radius=1.0)
+                             startangle=90, radius=1.1)
     #
     # Generate the labels for the legend
     #
-    labels_ = ['{0} - {1:1.2f} %'.format(i,j) for i,j in zip(ttype_df["Transient_Type"], percent)]
+    labels_ = [f'{i}: {k} ({j:1.2f}%)' for i, j, k in zip(ttype_df["Transient_Type"], percent, ttype_counts)]
     patches, labels_, dummy = zip(*sorted(zip(patches, labels_, ttype_df["Transient_Type_Counts"]),
                                           key=lambda x: x[2],
                                           reverse=True))
     #
     # Plot the legend
     #
-    plt.legend(patches, labels_, loc='center left', bbox_to_anchor=(-0.2, 1.), fontsize=8)
+    plt.legend(patches, labels_, loc='center left', bbox_to_anchor=(-0.4, 1.0), fontsize=8)
     #
     # Save the image
     #
