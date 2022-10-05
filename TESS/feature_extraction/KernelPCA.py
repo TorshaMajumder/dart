@@ -4,7 +4,7 @@
 import os
 import numpy as np
 import pickle
-from sklearn.decomposition import KernelPCA
+from sklearn.decomposition import KernelPCA, PCA
 from sklearn.metrics import mean_squared_error
 #
 # Create '/latent_space_data' folder if it does not exists already
@@ -14,8 +14,6 @@ if not os.path.exists('../latent_space_data'):
 
 
 class Kernel_PCA(object):
-
-
     """
 
     KernelPCA is a feature extraction tool for dimensionality reduction
@@ -161,16 +159,10 @@ class Kernel_PCA(object):
         print(f"\nData has been fitted to K_PCA estimator!\n")
 
 
-    def transform(self, tsfresh=False):
+    def transform(self):
 
         """
         Transforms the data by Kernel PCA estimator
-
-        Parameter
-        ---------
-
-        tsfresh: boolean (default=False)
-            transforming the TSFresh data
 
         """
         #
@@ -185,7 +177,6 @@ class Kernel_PCA(object):
             transformed_data = self.PCA_Estimator.transform(self.X)
             self.PCA_decoder = self.PCA_Estimator.inverse_transform(transformed_data)
 
-
         except Exception as e:
             print(f"\nUnknownError: {e}\n")
         #
@@ -193,31 +184,20 @@ class Kernel_PCA(object):
         #
         print(f"\nData has been transformed by K_PCA estimator!\n")
         #
+        # Create dictionary to add metadata
+        #
+        data = {'data': transformed_data, 'labels':self.labels, 'eigen_value': self.eigenvalues,
+                'eigen_vector': self.eigenvectors}
+        #
+        # Store the file in -- '/latent_space_data/{type}/' folder
+        #
+        with open(f"../latent_space_data/{self.type}/k_pca.pickle", 'wb') as file:
+            pickle.dump(data, file)
         #
         #
-        if tsfresh:
-
-            features_score = abs(self.eigenvectors[:, 0])
-            features = np.arange(self.n_features)
-            sorted_set = sorted(zip(features, features_score), key=lambda x: x[1], reverse=True)
-            return sorted_set
-
-
-        else:
-            #
-            # Create dictionary to add metadata
-            #
-            data = {'data': transformed_data, 'labels':self.labels, 'eigen_value': self.eigenvalues}
-            #
-            # Store the file in -- '/latent_space_data/{type}/' folder
-            #
-            with open(f"../latent_space_data/{self.type}/k_pca.pickle", 'wb') as file:
-                pickle.dump(data, file)
-            #
-            #
-            #
-            print(f"\nKernel_PCA latent space data is extracted and stored "
-                  f"in -- /latent_space_data/{self.type} -- folder!\n")
+        #
+        print(f"\nKernel_PCA latent space data is extracted and stored "
+              f"in -- /latent_space_data/{self.type} -- folder!\n")
 
 
 
@@ -230,12 +210,11 @@ class Kernel_PCA(object):
         print(f"\nKernel PCA reconstruction loss: {mse}\n")
 
 
-
 if __name__ == '__main__':
 
     k_pca = Kernel_PCA(lc_type="transients")
     k_pca.read_data(path="../transients/data/transients.pickle")
     k_pca.fit()
-    k_pca.transform(tsfresh=False)
+    k_pca.transform()
     k_pca.reconstruction_loss()
 

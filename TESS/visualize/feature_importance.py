@@ -27,7 +27,7 @@ def get_feature_importance(lc_type='transients', imp_method=None):
         type of light curve - 'transients' or 'transits'
 
     imp_method: String
-        feature importance method type - k_pca (Kernel_PCA) or urf (Unsupervised Random Forest)
+        feature importance method type - pca (PCA) or urf (Unsupervised Random Forest)
 
     Returns
     --------
@@ -67,15 +67,15 @@ def get_feature_importance(lc_type='transients', imp_method=None):
         exit()
 
     try:
-        if imp_method not in ["k_pca", "urf"]:
+        if imp_method not in ["pca", "urf"]:
             raise TypeError(f"\nTypeError: '{imp_method}' is not a valid extract_type!"
-                            f"\nPlease provide the extract_type as - 'k_pca' or 'urf'")
+                            f"\nPlease provide the extract_type as - 'pca' or 'urf'")
         else:
             #
             # Generate the labels
             #
-            if imp_method == "k_pca":
-                label1 = "Kernel PCA"
+            if imp_method == "pca":
+                label1 = "Linear PCA"
             elif imp_method == "urf":
                 label1 = "Unsupervised Random Forest"
     except Exception as e:
@@ -140,5 +140,5 @@ def get_feature_importance(lc_type='transients', imp_method=None):
 if __name__ == '__main__':
 
     tsfresh = TSFresh(lc_type="transients")
-    tsfresh.get_important_features(path="../transients/data/tsfresh_data.pickle", method="urf")
-    get_feature_importance(lc_type="transients", imp_method="urf")
+    tsfresh.get_important_features(path="../transients/data/tsfresh_data.pickle", method="pca")
+    get_feature_importance(lc_type="transients", imp_method="pca")

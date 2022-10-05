@@ -6,7 +6,8 @@ import pickle
 import numpy as np
 import pandas as pd
 import tsfresh as tf
-from TESS.feature_extraction.KernelPCA import Kernel_PCA
+from sklearn.decomposition import PCA
+#from TESS.feature_extraction.KernelPCA import Kernel_PCA
 from TESS.anomaly_detection.UnsupervisedRF import UnsupervisedRandomForest
 #
 # Create '/latent_space_data' folder if it does not exists already
@@ -176,18 +177,18 @@ class TSFresh(object):
         print(f"\nTSFresh features are extracted and stored in -- {path}!\n")
 
 
-    def get_important_features(self, path=None, method="urf"):
+    def get_important_features(self, path=None, method="pca"):
 
         """
-        Generates Unsupervised Random Forest extracted important features
+        Generates important features from the TSFresh data
 
         Parameters
         ----------
         path: string
             the file location of the TSFresh extracted features
 
-        method: string (default = urf)
-            method to extract 'n_features' using - Kernel_PCA (k_pca) or Unsupervised_RF (urf)
+        method: string (default = pca)
+            method to extract 'n_features' using - Linear_PCA (pca) or Unsupervised_RF (urf)
 
         """
         #
@@ -199,8 +200,8 @@ class TSFresh(object):
         # Validate the method type
         #
         try:
-            if method not in ["urf", "k_pca"]:
-                raise TypeError(f"\nTypeError: Unknown method type!\nPlease provide method as urf or k_pca.\n")
+            if method not in ["urf", "pca"]:
+                raise TypeError(f"\nTypeError: Unknown method type!\nPlease provide method as urf or pca.\n")
         except Exception as e:
             print(e)
             return
@@ -217,7 +218,7 @@ class TSFresh(object):
         cols_to_drop = nunique[nunique == 1].index
         tsfresh_data = tsfresh_data.drop(cols_to_drop, axis=1)
         #
-        # Extract - n_features - using k_pca or urf
+        # Extract - n_features - using pca or urf
         #
         try:
             self.labels = tsfresh_data.index.to_list()
@@ -270,30 +271,21 @@ class TSFresh(object):
                 # Create dictionary to add metadata
                 #
                 data = {'data': extracted_df, 'labels': self.labels, 'feature_imp': feature_imp}
-                #
-                # Store the file in -- '/latent_space_data/{type}/' folder
-                #
-                with open(f"../latent_space_data/{self.type}/tsfresh.pickle", 'wb') as file:
-                    pickle.dump(data, file)
 
-                print(f"\nTSFresh latent space data is extracted and stored "
-                      f"in -- /latent_space_data/{self.type} -- folder!\n")
 
-            elif method == "k_pca":
+            elif method == "pca":
                 #
-                # Initialize Kernel_PCA classifier
+                # Initialize linear_PCA classifier
                 #
-                k_pca = Kernel_PCA(X_train=extracted_features.T, lc_type=self.type, n_features=self.n_features)
+                linear_PCA = PCA(n_components=self.n_features)
+                linear_PCA.fit(extracted_features, y=None)
+                eigenvectors = linear_PCA.components_
                 #
-                # Fit the data to the classifier
+                # Store the important features
                 #
-                k_pca.fit()
-                #
-                # Transform the data using the Kernel PCA classifier
-                # Get the important features
-                #
-                features = k_pca.transform(tsfresh=True)
-
+                features_score = abs(eigenvectors[:, 0])
+                features = np.arange(self.n_features)
+                features = sorted(zip(features, features_score), key=lambda x: x[1], reverse=True)
                 for i in range(self.n_features):
                     idx, val = features[i][0], features[i][1]
                     feature_list.append(idx)
@@ -306,25 +298,25 @@ class TSFresh(object):
                 #
                 # Create dictionary to add metadata
                 #
-                data = {'data':extracted_df, 'labels':self.labels, 'feature_imp': feature_imp}
+                data = {'data': extracted_df, 'labels': self.labels, 'feature_imp': feature_imp}
                 #
-                # Load the Kernel PCA transformed data and add metadata to the file
+                # Load the Linear PCA transformed data and add metadata to the file
                 #
-                try:
-                    #
-                    # Store the file in -- '/latent_space_data/{type}/' folder
-                    #
-                    with open(f"../latent_space_data/{self.type}/tsfresh.pickle", 'wb') as file:
-                        pickle.dump(data, file)
+            try:
+                #
+                # Store the file in -- '/latent_space_data/{type}/' folder
+                #
+                with open(f"../latent_space_data/{self.type}/tsfresh.pickle", 'wb') as file:
+                    pickle.dump(data, file)
 
-                except Exception as e:
-                    print(f"\nUnknownError: {e}\n")
-                    return
-                #
-                #
-                #
-                print(f"\nTSFresh latent space data is extracted and stored "
-                      f"in -- /latent_space_data/{self.type} -- folder!\n")
+            except Exception as e:
+                print(f"\nUnknownError: {e}\n")
+                return
+            #
+            #
+            #
+            print(f"\nTSFresh latent space data is extracted and stored "
+                  f"in -- /latent_space_data/{self.type} -- folder!\n")
 
 
         except Exception as e:
@@ -337,7 +329,7 @@ if __name__ == '__main__':
     tsfresh = TSFresh(lc_type="transients")
     tsfresh.generate_data(path="../transients/data/transients.pickle")
     tsfresh.extract_features(path="../transients/data/tsfresh_data.pickle")
-    tsfresh.get_important_features(path="../transients/data/tsfresh_data.pickle", method="k_pca")
+    tsfresh.get_important_features(path="../transients/data/tsfresh_data.pickle", method="pca")
 
 
 
