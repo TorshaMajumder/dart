@@ -6,8 +6,7 @@ import re
 import pickle
 import pandas as pd
 import numpy as np
-from sklearn.decomposition import KernelPCA
-from sklearn.metrics import mean_squared_error
+from sklearn.manifold import Isomap
 from sklearn.preprocessing import MinMaxScaler
 
 import warnings
@@ -22,7 +21,7 @@ if not os.path.exists('../latent_space_data'):
     os.makedirs('../latent_space_data')
 
 
-class Kernel_PCA(object):
+class IsoMap(object):
     """
 
     KernelPCA is a feature extraction tool for dimensionality reduction
@@ -63,25 +62,20 @@ class Kernel_PCA(object):
 
     """
 
-    def __init__(self, X_train=None, lc_type=None, n_features=10, kernel='rbf', gamma=0.001,
-                 alpha=0.001, fit_inverse_transform=True, n_jobs=-1, passbands=["tess"],
+    def __init__(self, X_train=None, lc_type=None, n_features=10, n_jobs=-1, passbands=["tess"],
                  path=None, metadata=None):
 
         self.X_train = X_train
         self.type = lc_type
         self.n_features = n_features
-        self.kernel = kernel
-        self.gamma = gamma
-        self.alpha = alpha
-        self.PCA_Estimator = None
-        self.PCA_decoder = None
-        self.fit_inverse_transform = fit_inverse_transform
+        self.Isomap_Estimator = None
+        self.Isomap_decoder = None
         self.n_jobs = n_jobs
         self.labels = None
         self.path = path
         self.passbands = passbands
         self.metadata = metadata
-        self.kpca_data = None
+        self.isomap_data = None
 
         try:
             if self.type not in ["transits", "transients"]:
@@ -198,11 +192,11 @@ class Kernel_PCA(object):
                     try:
                         if band == "tess":
                             filtered_band_data = band_data[(band_data[f"{band}_flux"].notnull()) &
-                                                   (band_data[f"{band}_uncert"].notnull())]
+                                                           (band_data[f"{band}_uncert"].notnull())]
                             nan_count = band_data.loc[:, f"{band}_flux"].isna().sum()
                             if nan_count != timesteps_tess:
                                 max_rel_time, min_rel_time = filtered_band_data["relative_time"].max(), \
-                                                     filtered_band_data["relative_time"].min()
+                                                             filtered_band_data["relative_time"].min()
                                 if max_rel_time > g_max:
                                     g_max = max_rel_time
                                 if min_rel_time < g_min:
@@ -224,7 +218,7 @@ class Kernel_PCA(object):
 
                                     if t not in time:
                                         band_data.loc[t] = np.full(shape=len(band_data.columns),
-                                                       fill_value=[t, maskval, maskval])
+                                                                   fill_value=[t, maskval, maskval])
                                         band_data = band_data.sort_index()
 
 
@@ -250,7 +244,7 @@ class Kernel_PCA(object):
 
                             band_data = data[["relative_time", f"{band}_flux", f"{band}_uncert"]].copy(deep=True)
                             binned_data = self.binned_transients(df=band_data, interval="3D", time_col="relative_time",
-                                                                    uncert=f"{band}_uncert")
+                                                                 uncert=f"{band}_uncert")
 
                             nan_count = binned_data.loc[:, f"{band}_flux"].isna().sum()
                             if nan_count != timesteps_rg:
@@ -265,7 +259,7 @@ class Kernel_PCA(object):
 
                                     if t not in time:
                                         binned_data.loc[t] = np.full(shape=len(binned_data.columns),
-                                                             fill_value=[t, maskval, maskval])
+                                                                     fill_value=[t, maskval, maskval])
                                         binned_data = binned_data.sort_index()
                                 #
                                 # Apply MinMaxScalar (feature range = [0,1])
@@ -319,15 +313,11 @@ class Kernel_PCA(object):
 
         try:
 
-            self.PCA_Estimator = KernelPCA(n_components=self.n_features, kernel=self.kernel,
-                                            gamma=self.gamma, alpha= self.alpha,
-                                            fit_inverse_transform=self.fit_inverse_transform,
-                                            n_jobs=self.n_jobs)
+            self.Isomap_Estimator = Isomap(n_components=self.n_features, n_jobs=self.n_jobs)
 
-            transformed_data = self.PCA_Estimator.fit_transform(x_train, y=None)
-            PCA_decoder = self.PCA_Estimator.inverse_transform(transformed_data)
+            transformed_data = self.Isomap_Estimator.fit_transform(x_train, y=None)
 
-            return transformed_data, PCA_decoder
+            return transformed_data
 
         except Exception as e:
             print(f"\nUnknownError: {e}\n")
@@ -338,7 +328,7 @@ class Kernel_PCA(object):
     def build_model(self):
 
         transformed_data, decoded_data = dict(), dict()
-        kpca_data = pd.DataFrame()
+        isomap_data = pd.DataFrame()
 
         feature_list = np.zeros(shape=len(self.passbands))
         default_band_order = {0: "tess", 1: "r", 2: "g"}
@@ -370,14 +360,14 @@ class Kernel_PCA(object):
         try:
             for band in self.passbands:
                 x_train = self.X_train[f"{band}_flux"]
-                data, dec_data = self.fit_transform(x_train=x_train)
+                data= self.fit_transform(x_train=x_train)
                 transformed_data[f"{band}_flux"] = data
-                decoded_data[f"{band}_flux"] = dec_data
+                #decoded_data[f"{band}_flux"] = dec_data
 
             for i in range(len(feature_list)):
                 features = int(feature_list[i])
                 band = band_order[i]
-                kpca_data = pd.concat([pd.DataFrame(transformed_data[f"{band}_flux"][:, 0:features]), kpca_data], axis=1)
+                isomap_data = pd.concat([pd.DataFrame(transformed_data[f"{band}_flux"][:, 0:features]), isomap_data], axis=1)
 
         except Exception as e:
             print(f"\nUnknown Error: {e}\n")
@@ -385,18 +375,18 @@ class Kernel_PCA(object):
         try:
 
             if "mwebv" in self.metadata:
-                kpca_data = pd.concat([pd.DataFrame(self.X_train["mwebv"]), kpca_data], axis=1)
+                isomap_data = pd.concat([pd.DataFrame(self.X_train["mwebv"]), isomap_data], axis=1)
 
             if "max_flux" in self.metadata:
-                kpca_data = pd.concat([pd.DataFrame(self.X_train["max_flux"]), kpca_data], axis=1)
+                isomap_data = pd.concat([pd.DataFrame(self.X_train["max_flux"]), isomap_data], axis=1)
 
         except Exception as e:
             print(f"\nUnknown Error: {e}\n")
 
-        kpca_data = kpca_data.fillna(0.0)
-        kpca_data = kpca_data.to_numpy()
+        isomap_data = isomap_data.fillna(0.0)
+        isomap_data = isomap_data.to_numpy()
 
-        self.kpca_data = kpca_data
+        self.isomap_data = isomap_data
 
 
     def save_data(self):
@@ -417,11 +407,11 @@ class Kernel_PCA(object):
 
         # Create dictionary to add metadata
         #
-        data = {'data': self.kpca_data, 'labels':self.labels}
+        data = {'data': self.isomap_data, 'labels':self.labels}
         #
         # Store the file in -- '/latent_space_data/{type}/' folder
         #
-        with open(f"../latent_space_data/{self.type}/k_pca.pickle", 'wb') as file:
+        with open(f"../latent_space_data/{self.type}/isomap.pickle", 'wb') as file:
             pickle.dump(data, file)
         #
         #
@@ -431,21 +421,12 @@ class Kernel_PCA(object):
 
 
 
-    def reconstruction_loss(self):
-
-        #
-        # Calculate the reconstruction loss (MSE)
-        #
-        mse = mean_squared_error(self.X, self.PCA_decoder, squared=False)
-        print(f"\nKernel PCA reconstruction loss: {mse}\n")
-
-
 if __name__ == '__main__':
 
-    k_pca = Kernel_PCA(lc_type="transients", path=f"../transients/processed_curves_good_great/",
-                       passbands=["tess", "g", "r"], metadata=["mwebv", "max_flux"], n_features=8)
-    k_pca.generate_data()
-    k_pca.build_model()
-    k_pca.save_data()
+    i_map = IsoMap(lc_type="transients", path=f"../transients/processed_curves_good_great/",
+                       passbands=["r", "g"], metadata=["mwebv", "max_flux"], n_features=8)
+    i_map.generate_data()
+    i_map.build_model()
+    i_map.save_data()
 
 
