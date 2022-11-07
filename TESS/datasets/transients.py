@@ -5,11 +5,13 @@ import os
 import pickle
 import numpy as np
 import pandas as pd
+from sklearn.preprocessing import StandardScaler
 
 
 def load_latent_space(extract_type=None):
 
     file_list = list()
+    scaler = StandardScaler()
 
     try:
         if os.path.exists('../latent_space_data/transients'):
@@ -50,10 +52,12 @@ def load_latent_space(extract_type=None):
                                     f"k_pca, tsfresh, or vae, but got {extract_type}.\n")
 
                 if isinstance(data['data'], (np.ndarray, np.generic)):
+                    data["data"] = scaler.fit_transform(data["data"])
                     return data
 
                 elif isinstance(data['data'], pd.DataFrame):
                     data['data'] = data['data'].to_numpy()
+                    data["data"] = scaler.fit_transform(data["data"])
                     return data
 
                 else:
@@ -77,5 +81,6 @@ def load_latent_space(extract_type=None):
 if __name__ == '__main__':
 
     data = load_latent_space(extract_type='vae')
+    print(data)
 
 
