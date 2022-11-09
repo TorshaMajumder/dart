@@ -760,11 +760,11 @@ if __name__ == '__main__':
 
     data = load_latent_space(extract_type='tsfresh')
     X_train, labels = data['data'], data['labels']
-    data_info = generate_data(lc_type="transients", filename="birch_tsfresh.pickle", method='birch',
+    data_info = generate_data(lc_type="transients", filename="hdbscan_tsfresh.pickle", method='hdbscan',
                               viz_method='umap', image_path="processed/", X=X_train, lc_labels=labels,
                               extract_type='tsfresh')
-    visualize_clusters(data=data_info, convex_hull=True, viz_method="umap", method="birch",
+    visualize_clusters(data=data_info, convex_hull=True, viz_method="umap", method="hdbscan",
                        extract_type="tsfresh")
-    visualize_sub_clusters(data=data_info, viz_method="umap", method="birch",
-                           extract_type="tsfresh")
+    visualize_sub_clusters(data=data_info, viz_method="umap", method="hdbscan",
+                          extract_type="tsfresh")
 
