@@ -185,7 +185,7 @@ class Kernel_PCA(object):
         for i, csv in enumerate(filename):
             try:
                 id = re.findall("_(.*?)_ZTF\d+[a-zA-Z]{1,10}_processed", csv)
-                label.append(id)
+                label.append(id[0])
                 data = pd.read_csv(self.path + csv)
                 mwebv[i] = data[f"mwebv"].unique()
             except Exception as e:
@@ -443,7 +443,7 @@ class Kernel_PCA(object):
 if __name__ == '__main__':
 
     k_pca = Kernel_PCA(lc_type="transients", path=f"../transients/processed_curves_good_great/",
-                       passbands=["tess", "g", "r"], metadata=["mwebv", "max_flux"], n_features=8)
+                       passbands=["tess", "g", "r"], metadata=["mwebv", "max_flux"], n_features=10)
     k_pca.generate_data()
     k_pca.build_model()
     k_pca.save_data()

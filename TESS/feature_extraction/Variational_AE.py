@@ -297,7 +297,7 @@ class GenerateData(object):
         for i, csv in enumerate(filename):
 
             id = re.findall("_(.*?)_ZTF\d+[a-zA-Z]{1,10}_processed", csv)
-            label.append(id)
+            label.append(id[0])
             df = pd.read_csv(self.path + csv)
             df.index = df["relative_time"]
             df = df.fillna(maskval)
@@ -376,7 +376,7 @@ if __name__ == '__main__':
     data = GenerateData(lc_type="transients", path=f"../transients/processed_curves_good_great/",
                         passbands=["tess", "g", "r"], metadata=["mwebv", "max_flux"])
     X_train, time_id_index, flux_index = data.generate_data()
-    vae = VariationalAutoEncoder(X_train=X_train, epochs=10, batch_size=50, latent_dim=8,
+    vae = VariationalAutoEncoder(X_train=X_train, epochs=10, batch_size=50, latent_dim=10,
                                  lc_type="transients", time_id_index=time_id_index, flux_index=flux_index)
     vae.fit_transform()
     data.save_data()

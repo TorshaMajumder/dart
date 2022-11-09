@@ -422,7 +422,7 @@ class TSFresh(object):
 if __name__ == '__main__':
 
     tsfresh = TSFresh(lc_type="transients", path=f"../transients/processed_curves_good_great/",
-                      passbands=["r", "tess", "g"], metadata=["mwebv", "max_flux"], n_features=8)
+                      passbands=["r", "tess", "g"], metadata=["mwebv", "max_flux"], n_features=15)
     tsfresh.generate_data()
     tsfresh.extract_features(path=f"../transients/data/tsfresh_data.pickle")
     tsfresh.get_important_features(path="../transients/data/tsfresh_data.pickle", method="urf")

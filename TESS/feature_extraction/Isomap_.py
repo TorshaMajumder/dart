@@ -179,7 +179,7 @@ class IsoMap(object):
         for i, csv in enumerate(filename):
             try:
                 id = re.findall("_(.*?)_ZTF\d+[a-zA-Z]{1,10}_processed", csv)
-                label.append(id)
+                label.append(id[0])
                 data = pd.read_csv(self.path + csv)
                 mwebv[i] = data[f"mwebv"].unique()
             except Exception as e:
