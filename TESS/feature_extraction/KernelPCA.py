@@ -6,6 +6,7 @@ import re
 import pickle
 import pandas as pd
 import numpy as np
+import matplotlib.pyplot as plt
 from sklearn.decomposition import KernelPCA
 from sklearn.metrics import mean_squared_error
 from sklearn.preprocessing import MinMaxScaler
@@ -74,7 +75,7 @@ class Kernel_PCA(object):
         self.gamma = gamma
         self.alpha = alpha
         self.PCA_Estimator = None
-        self.PCA_decoder = None
+        self.decoded_data = None
         self.fit_inverse_transform = fit_inverse_transform
         self.n_jobs = n_jobs
         self.labels = None
@@ -373,6 +374,8 @@ class Kernel_PCA(object):
                 data, dec_data = self.fit_transform(x_train=x_train)
                 transformed_data[f"{band}_flux"] = data
                 decoded_data[f"{band}_flux"] = dec_data
+                # print(f"\n{band}, {self.X_train['tess_flux'].shape}, {self.X_train['r_flux'].shape},"
+                #       f"{self.X_train['g_flux'].shape},{dec_data.shape}\n")
 
             for i in range(len(feature_list)):
                 features = int(feature_list[i])
@@ -397,7 +400,7 @@ class Kernel_PCA(object):
         kpca_data = kpca_data.to_numpy()
 
         self.kpca_data = kpca_data
-
+        self.decoded_data = decoded_data
 
     def save_data(self):
 
@@ -430,14 +433,60 @@ class Kernel_PCA(object):
               f"in -- /latent_space_data/{self.type} -- folder!\n")
 
 
-
-    def reconstruction_loss(self):
+    def plot_reconstructed_data(self):
 
         #
-        # Calculate the reconstruction loss (MSE)
+        # Create a '/reconstructed_images/{type}/kpca/' folder if it does not exists already
         #
-        mse = mean_squared_error(self.X, self.PCA_decoder, squared=False)
-        print(f"\nKernel PCA reconstruction loss: {mse}\n")
+        if not os.path.exists(f'reconstructed_images/{self.type}/kpca/'):
+            os.makedirs(f'reconstructed_images/{self.type}/kpca/')
+        #
+        #
+        #
+        n_samples = len(self.labels)
+        n_bands = len(self.passbands)
+        #
+        # Generate the images
+        #
+        n_row, n_col, id = 2, n_bands, 0
+        q, r = divmod(n_samples, n_row)
+        if r != 0:
+            q += 1
+        batch_size = q
+        for batch in range(batch_size):
+            fig = plt.figure(figsize=(2048, 1024))
+            fig, axs = plt.subplots(nrows=n_row, ncols=n_bands, figsize=(18, 15))
+            k = id
+            try:
+                for row in range(n_row):
+
+                    if id < n_samples:
+                        for band in range(n_bands):
+                            flux = self.X_train[f"{self.passbands[band]}_flux"][id]
+                            d_flux = self.decoded_data[f"{self.passbands[band]}_flux"][id]
+                            timesteps = np.arange(len(flux))
+                            axs[row, band].set_title(f"IAU Name: {self.labels[id]} --- Band : {self.passbands[band]}",
+                                                     fontsize=18)
+                            axs[row, band].plot(timesteps, flux, c='black', label="True")
+                            axs[row, band].plot(timesteps, d_flux, c='red', label="Predicted")
+                            axs[row, band].grid(color='grey', linestyle='-.', linewidth=0.5)
+                            axs[row, band].legend(loc="best")
+
+                    id += 1
+
+            except Exception as e:
+                print(f"\nException Raised: {e}\n")
+                id += 1
+                continue
+
+            fig.tight_layout(pad=1.0)
+            fig.savefig(f"reconstructed_images/{self.type}/kpca/image_{k}_{id-1}.png", bbox_inches="tight",
+                        orientation='landscape')
+        print(f"\nImages are available in -- reconstructed_images/{self.type}/kpca/ -- folder.\n")
+
+
+
+
 
 
 if __name__ == '__main__':
@@ -446,6 +495,7 @@ if __name__ == '__main__':
                        passbands=["tess", "g", "r"], metadata=["mwebv", "max_flux"], n_features=10)
     k_pca.generate_data()
     k_pca.build_model()
+    k_pca.plot_reconstructed_data()
     k_pca.save_data()
 
 

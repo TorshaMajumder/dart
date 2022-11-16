@@ -6,6 +6,7 @@ import pickle
 import pandas as pd
 import numpy as np
 import tensorflow as tf
+import matplotlib.pyplot as plt
 import re
 import keras.backend as K
 from sklearn.preprocessing import MinMaxScaler
@@ -65,12 +66,14 @@ class VariationalAutoEncoder(object):
 
     """
 
-    def __init__(self, X_train=None, epochs=100, batch_size=None, n_filters=1,
+    def __init__(self, X_train=None, epochs=100, batch_size=None, n_filters=1, passbands=None, labels=None,
                  latent_dim=10, n_neurons=100, lc_type=None, time_id_index=None, flux_index=None):
 
         self.type = lc_type
+        self.labels = labels
         self.epochs = epochs
         self.X_train = X_train
+        self.passbands = passbands
         self.encoded_data = None
         self.decoded_data = None
         self.timesteps = self.X_train.shape[1]
@@ -195,8 +198,61 @@ class VariationalAutoEncoder(object):
         with open(f"../latent_space_data/{self.type}/vae.pickle", 'wb') as file:
             pickle.dump(self.encoded_data, file)
 
+    def plot_reconstructed_data(self):
 
+        Y_train = self.X_train[:, :, [self.flux_index]]
 
+        n_samples = Y_train.shape[0]
+        n_bands = len(self.passbands)
+        timesteps = np.arange(int(self.timesteps/n_bands))
+        #
+        # Create a 'reconstructed_images/{type}/vae/' folder if it does not exists already
+        #
+        if not os.path.exists(f'reconstructed_images/{self.type}/vae/'):
+            os.makedirs(f'reconstructed_images/{self.type}/vae/')
+
+        #
+        # Generate the images
+        #
+        n_row, n_col, id = 2, n_bands, 0
+        q, r = divmod(n_samples, n_row)
+        if r != 0:
+            q += 1
+        batch_size = q
+        #
+        #
+        #
+        for batch in range(batch_size):
+            fig = plt.figure(figsize=(2048, 1024))
+            fig, axs = plt.subplots(nrows=n_row, ncols=n_bands, figsize=(18, 15))
+            k = id
+            try:
+
+                for row in range(n_row):
+
+                    if id < n_samples:
+
+                        for band in range(n_bands):
+                            flux = Y_train[id, band::n_bands, ]
+                            d_flux = self.decoded_data[id, band::n_bands, ]
+                            axs[row, band].set_title(f"IAU Name: {self.labels[id]} --- Band : {self.passbands[band]}",
+                                                     fontsize=18)
+                            axs[row, band].plot(timesteps, flux, c='black', label="True")
+                            axs[row, band].plot(timesteps, d_flux, c='red', label="Predicted")
+                            axs[row, band].grid(color='grey', linestyle='-.', linewidth=0.5)
+                            axs[row, band].legend(loc="best")
+
+                    id += 1
+
+            except Exception as e:
+                print(f"\nException Raised: {e}\n")
+                id += 1
+                continue
+
+            fig.tight_layout(pad=1.0)
+            fig.savefig(f"reconstructed_images/{self.type}/vae/image_{k}_{id-1}.png", bbox_inches="tight",
+                        orientation='landscape')
+        print(f"\nImages are available in -- reconstructed_images/{self.type}/vae/ -- folder.\n")
 
     def vae_loss(self, encoded_mean, encoded_log_sigma):
         """
@@ -333,7 +389,7 @@ class GenerateData(object):
         flux_index = combined_df.columns.get_loc("flux")
         self.labels = label
 
-        return x_train, cols_index, flux_index
+        return x_train, cols_index, flux_index, self.labels
 
     def save_data(self):
         #
@@ -375,11 +431,14 @@ if __name__ == '__main__':
 
     data = GenerateData(lc_type="transients", path=f"../transients/processed_curves_good_great/",
                         passbands=["tess", "g", "r"], metadata=["mwebv", "max_flux"])
-    X_train, time_id_index, flux_index = data.generate_data()
-    vae = VariationalAutoEncoder(X_train=X_train, epochs=10, batch_size=50, latent_dim=10,
-                                 lc_type="transients", time_id_index=time_id_index, flux_index=flux_index)
+    X_train, time_id_index, flux_index, labels = data.generate_data()
+    vae = VariationalAutoEncoder(X_train=X_train, epochs=10, batch_size=50, latent_dim=10, passbands=["tess", "g", "r"],
+                                 lc_type="transients", time_id_index=time_id_index, flux_index=flux_index, labels=labels)
     vae.fit_transform()
+    vae.plot_reconstructed_data()
     data.save_data()
+
+
 
 
 
