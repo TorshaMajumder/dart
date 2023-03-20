@@ -12,8 +12,6 @@ from sklearn.preprocessing import MinMaxScaler
 import warnings
 warnings.filterwarnings("ignore", category=RuntimeWarning)
 
-
-#from TESS.transients.read_transients import TESS_Transients
 #
 # Create '/latent_space_data' folder if it does not exists already
 #
@@ -63,7 +61,7 @@ class IsoMap(object):
     """
 
     def __init__(self, X_train=None, lc_type=None, n_features=10, n_jobs=-1, passbands=["tess"],
-                 path=None, metadata=None):
+                 path=None, metadata=None, binning=False):
 
         self.X_train = X_train
         self.type = lc_type
@@ -76,6 +74,7 @@ class IsoMap(object):
         self.passbands = passbands
         self.metadata = metadata
         self.isomap_data = None
+        self.binning = binning
 
         try:
             if self.type not in ["transits", "transients"]:
@@ -150,7 +149,8 @@ class IsoMap(object):
         # sqrt avg vars to get uncertainty in stds
         #
         binned_data[uncert] = np.power(binned_data[uncert], 0.5)
-
+        binned_data = binned_data.reset_index(drop=True)
+        binned_data = binned_data.set_index("relative_time", drop=False)
 
         return binned_data
 
@@ -178,7 +178,15 @@ class IsoMap(object):
 
         for i, csv in enumerate(filename):
             try:
-                id = re.findall("_(.*?)_ZTF\d+[a-zA-Z]{1,10}_processed", csv)
+                #
+                # Regex used for TESS+ZTF data to extract the IAU Name
+                #
+                #id = re.findall("_(.*?)_ZTF\d+[a-zA-Z]{1,10}_processed", csv)
+                #
+                # Object_ids  for the PLAsTiCC data set
+                #
+                id = os.path.splitext(csv)
+                #
                 label.append(id[0])
                 data = pd.read_csv(self.path + csv)
                 mwebv[i] = data[f"mwebv"].unique()
@@ -224,13 +232,15 @@ class IsoMap(object):
 
                                 for t in np.arange(min_rel_time, max_rel_time + interval_val_tess, interval_val_tess):
 
-                                    band_data.loc[t, f"{band}_flux"] = flux_mean
-                                    band_data.loc[t, f"{band}_uncert"] = flux_uncert_mean
+                                    if pd.isna(band_data.loc[t, f"{band}_flux"]):
+
+                                        band_data.loc[t, f"{band}_flux"] = flux_mean
+                                        band_data.loc[t, f"{band}_uncert"] = flux_uncert_mean
 
                             band_data = band_data.fillna(0.0)
                             band_data = band_data.sort_index()
                             #
-                            # Reshape the dataframe to (60,3)
+                            # Reshape the dataframe to (timesteps_tess,3)
                             #
                             if (len(band_data) != timesteps_tess):
                                 n_row = band_data.shape[0]
@@ -243,8 +253,11 @@ class IsoMap(object):
                         elif band == "r" or "g":
 
                             band_data = data[["relative_time", f"{band}_flux", f"{band}_uncert"]].copy(deep=True)
-                            binned_data = self.binned_transients(df=band_data, interval="3D", time_col="relative_time",
-                                                                 uncert=f"{band}_uncert")
+                            if self.binning:
+                                binned_data = self.binned_transients(df=band_data, interval="3D", time_col="relative_time",
+                                                                     uncert=f"{band}_uncert")
+                            else:
+                                binned_data = band_data.copy(deep=True)
 
                             nan_count = binned_data.loc[:, f"{band}_flux"].isna().sum()
                             if nan_count != timesteps_rg:
@@ -255,7 +268,7 @@ class IsoMap(object):
 
                                 max_flux[i, j] = max(binned_data.loc[:, f"{band}_flux"])
 
-                                for t in np.arange(min_rel_time, max_rel_time, 1):
+                                for t in np.arange(min_rel_time, max_rel_time, interval_val_rg):
 
                                     if t not in time:
                                         binned_data.loc[t] = np.full(shape=len(binned_data.columns),
@@ -272,7 +285,7 @@ class IsoMap(object):
                                 binned_data.loc[:, f"{band}_flux"].fillna(value=flux_mean, inplace=True)
                                 binned_data.loc[:, f"{band}_uncert"].fillna(value=flux_uncert_mean, inplace=True)
                                 #
-                                # Reshape the dataframe to (60,3)
+                                # Reshape the dataframe to (timesteps_rg,3)
                                 #
                                 if (len(binned_data) != timesteps_rg):
                                     n_row = binned_data.shape[0]
@@ -362,7 +375,7 @@ class IsoMap(object):
                 x_train = self.X_train[f"{band}_flux"]
                 data= self.fit_transform(x_train=x_train)
                 transformed_data[f"{band}_flux"] = data
-                #decoded_data[f"{band}_flux"] = dec_data
+
 
             for i in range(len(feature_list)):
                 features = int(feature_list[i])
@@ -401,13 +414,9 @@ class IsoMap(object):
         if not os.path.exists(f"../latent_space_data/{self.type}"):
             os.makedirs(f"../latent_space_data/{self.type}")
         #
-        #
-        #
-
-
         # Create dictionary to add metadata
         #
-        data = {'data': self.isomap_data, 'labels':self.labels}
+        data = {'data': self.isomap_data, 'labels': self.labels}
         #
         # Store the file in -- '/latent_space_data/{type}/' folder
         #
@@ -423,8 +432,8 @@ class IsoMap(object):
 
 if __name__ == '__main__':
 
-    i_map = IsoMap(lc_type="transients", path=f"../transients/processed_curves_good_great/",
-                       passbands=["r", "g"], metadata=["mwebv", "max_flux"], n_features=8)
+    i_map = IsoMap(lc_type="transients", path=f"../transients/processed_data/",
+                   passbands=["r", "g"], n_features=10, binning=False)
     i_map.generate_data()
     i_map.build_model()
     i_map.save_data()

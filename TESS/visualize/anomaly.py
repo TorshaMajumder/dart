@@ -66,7 +66,8 @@ def generate_data(lc_type='transients', filename=None):
     # Load the transient types and sub-types
     #
     try:
-        labels = pd.read_csv("../transients/labels__.csv")
+        #labels = pd.read_csv("../transients/labels__.csv")
+        labels = pd.read_csv("../transients/labels_plasticc__.csv")
         labels = labels.rename(columns={'Label': 'Transient_Sub_Type', 'Group': 'Transient_Type'})
 
     except FileNotFoundError as e:
@@ -74,12 +75,12 @@ def generate_data(lc_type='transients', filename=None):
               f"\nPlease verify if the folder - ../transients/labels__.csv - exists.\n")
         exit()
 
-    test = pd.read_csv("../transients/transients.csv")
     #
     # Load the IAU_Name and their labels
     #
     try:
-        with open(f'../transients/data/transient_labels.pickle', 'rb') as file:
+        #with open(f'../transients/data/transient_labels.pickle', 'rb') as file:
+        with open(f'../transients/data/transient_labels_plasticc.pickle', 'rb') as file:
             labels_info = pickle.load(file)
     except FileNotFoundError as e:
         print(f"\nFileNotFoundError: Data cannot be loaded!"
@@ -111,7 +112,7 @@ def generate_data(lc_type='transients', filename=None):
         # generate individual colors for transient types
         #
         n_ttypes = len(data['Transient_Type'].unique())
-        c_ttypes = mcp.gen_color(cmap="Set2", n=n_ttypes)
+        c_ttypes = mcp.gen_color(cmap='Spectral', n=n_ttypes)
         #
         # Create a dict() of colors for each transient types
         #
@@ -149,10 +150,10 @@ def visualize_anomaly_with_sns(data=None, extract_type=None, method=None, lc_typ
         dataframe with the distribution information
 
     extract_type: String
-        feature extraction methods - k_pca, tsfresh, or vae
+        feature extraction methods - k_pca, tsfresh, isomap,or vae
 
     method: String
-        anomaly detection methods - iforest or urf
+        anomaly detection methods - iforest, hdbscan, or urf
 
     Returns
     -------
@@ -182,9 +183,9 @@ def visualize_anomaly_with_sns(data=None, extract_type=None, method=None, lc_typ
         exit()
 
     try:
-        if extract_type not in ["k_pca", "tsfresh", "vae"]:
+        if extract_type not in ["k_pca", "tsfresh", "vae", "isomap"]:
             raise TypeError(f"\nTypeError: '{extract_type}' is not a valid extract_type!"
-                            f"\nPlease provide the extract_type as - 'k_pca' , 'tsfresh', or 'vae'")
+                            f"\nPlease provide the extract_type as - 'k_pca' , 'tsfresh', 'isomap',or 'vae'")
         else:
             #
             # Generate the labels
@@ -195,13 +196,15 @@ def visualize_anomaly_with_sns(data=None, extract_type=None, method=None, lc_typ
                 label2 = "TSFresh"
             elif extract_type == "vae":
                 label2 = "Variational Auto-Encoder"
+            elif extract_type == "isomap":
+                label2 = "Isomap"
     except Exception as e:
         print(e)
         exit()
     try:
         if method not in ["iforest", "urf", "hdbscan"]:
             raise TypeError(f"\nTypeError: '{method}' is not a valid method!"
-                            f"\nPlease provide the method as - 'iforest' or 'urf'")
+                            f"\nPlease provide the method as - 'iforest', hdbscan, or 'urf'")
         else:
             #
             # Generate the labels
@@ -232,10 +235,10 @@ def visualize_anomaly_with_sns(data=None, extract_type=None, method=None, lc_typ
         plot = sns.distplot(d['Anomaly_Score'], rug=False, hist=True, ax=axs[i],
                             color=d['Transient_Type_Color'].unique()[0], kde=True,
                             kde_kws={"color": "k", "lw": 2, "label": "KDE"})
-        # l_ = plot.lines[0]
-        # x = l_.get_xydata()[:, 0]
-        # y = l_.get_xydata()[:, 1]
-        # plot.fill_between(x, y, color=d['Transient_Type_Color'].unique()[0], alpha=0.40)
+        l_ = plot.lines[0]
+        x = l_.get_xydata()[:, 0]
+        y = l_.get_xydata()[:, 1]
+        plot.fill_between(x, y, color=d['Transient_Type_Color'].unique()[0], alpha=0.40)
         plot.set(yticklabels=[])
         plot.set_xlabel("Anomaly Score", fontsize=14)
         plot.set_ylabel(ttype, fontsize=15)
@@ -245,11 +248,6 @@ def visualize_anomaly_with_sns(data=None, extract_type=None, method=None, lc_typ
         #
         i += 1
     #
-    # Create a 'images/{lc_type}/anomaly/' folder if it does not exists already
-    #
-    # if not os.path.exists(f'images/{lc_type}/anomaly/'):
-    #     os.makedirs(f'images/{lc_type}/anomaly/')
-
     plt.tight_layout(pad=1.5)
     plt.savefig(f'images/{lc_type}/anomaly/{method}_{extract_type}_sns.png', bbox_inches='tight')
 
@@ -275,7 +273,7 @@ def visualize_anomaly_with_joypy(data=None, extract_type=None, method=None, lc_t
         feature extraction methods - k_pca, tsfresh, or vae
 
     method: String
-        anomaly detection methods - iforest or urf
+        anomaly detection methods - iforest , hdbscan, or urf
 
     Returns
     --------
@@ -287,7 +285,7 @@ def visualize_anomaly_with_joypy(data=None, extract_type=None, method=None, lc_t
     # Declare the variables
     #
     cmap = colors.ListedColormap(data['Transient_Type_Color'].unique())
-    urf_xticks = (0.65, 1.15)
+    urf_xticks = (0.80, 1.05)
     iforest_xticks = (-0.4, 0.4)
     hdbscan_xticks = (-0.2, 0.5)
     #
@@ -307,9 +305,9 @@ def visualize_anomaly_with_joypy(data=None, extract_type=None, method=None, lc_t
         exit()
 
     try:
-        if extract_type not in ["k_pca", "tsfresh", "vae"]:
+        if extract_type not in ["k_pca", "tsfresh", "vae", "isomap"]:
             raise TypeError(f"\nTypeError: '{extract_type}' is not a valid extract_type!"
-                            f"\nPlease provide the extract_type as - 'k_pca' , 'tsfresh', or 'vae'")
+                            f"\nPlease provide the extract_type as - 'k_pca' , 'tsfresh', 'isomap',or 'vae'")
         else:
             #
             # Generate the labels
@@ -320,13 +318,15 @@ def visualize_anomaly_with_joypy(data=None, extract_type=None, method=None, lc_t
                 label2 = "TSFresh"
             elif extract_type == "vae":
                 label2 = "Variational Auto-Encoder"
+            elif extract_type == "isomap":
+                label2 = "Isomap"
     except Exception as e:
         print(e)
         exit()
     try:
         if method not in ["iforest", "urf", "hdbscan"]:
             raise TypeError(f"\nTypeError: '{method}' is not a valid method!"
-                            f"\nPlease provide the method as - 'iforest' or 'urf'")
+                            f"\nPlease provide the method as - 'iforest', hdbscan, or 'urf'")
         else:
             #
             # Generate the labels
@@ -341,7 +341,7 @@ def visualize_anomaly_with_joypy(data=None, extract_type=None, method=None, lc_t
         print(e)
         exit()
     #
-    # Set the x_ticks for urf and iforest
+    # Set the x_ticks for urf, hdbscan, and iforest
     #
     if method == "iforest":
         x_ticks = iforest_xticks
@@ -363,10 +363,6 @@ def visualize_anomaly_with_joypy(data=None, extract_type=None, method=None, lc_t
     plt.title(f'Anomaly Detection: {label1} ----- Feature Extraction: {label2}', **csfont, fontsize=12)
     plt.xlabel('Anomaly Score')
     #
-    # Create a 'images/{lc_type}/anomaly/pdf' folder if it does not exists already
-    #
-    # if not os.path.exists(f'images/{lc_type}/anomaly/'):
-    #     os.makedirs(f'images/{lc_type}/anomaly/')
     plt.savefig(f'images/{lc_type}/anomaly/{method}_{extract_type}_joypy.png', bbox_inches='tight')
 
     print(f"\nThe anomaly score plot is generated and stored in - "
@@ -377,7 +373,7 @@ def visualize_anomaly_with_joypy(data=None, extract_type=None, method=None, lc_t
 
 if __name__ == '__main__':
 
-    data_info = generate_data(lc_type="transients", filename="urf_k_pca.pickle")
-    visualize_anomaly_with_joypy(data_info, lc_type="transients", extract_type="k_pca", method="urf")
-    visualize_anomaly_with_sns(data_info, lc_type="transients", extract_type="k_pca", method="urf")
+    data_info = generate_data(lc_type="transients", filename="iforest_k_pca.pickle")
+    visualize_anomaly_with_joypy(data_info, lc_type="transients", extract_type="k_pca", method="iforest")
+    visualize_anomaly_with_sns(data_info, lc_type="transients", extract_type="k_pca", method="iforest")
 

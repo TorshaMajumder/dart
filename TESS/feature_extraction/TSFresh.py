@@ -7,6 +7,7 @@ import pickle
 import numpy as np
 import pandas as pd
 import tsfresh as tf
+from tsfresh.feature_extraction import EfficientFCParameters
 from sklearn.decomposition import PCA
 from sklearn.preprocessing import MinMaxScaler
 from TESS.anomaly_detection.UnsupervisedRF import UnsupervisedRandomForest
@@ -113,7 +114,7 @@ class TSFresh(object):
         # Declare all the variables
         #
         curve_range = (-30, 70)
-        maskval, interval_val, n_bands = 0.0, 0.5, len(self.passbands)
+        maskval, interval_val, n_bands = 0.0, 3.0, len(self.passbands)
         max_flux = np.zeros(shape=(len(filename), n_bands))
         timesteps = int(((curve_range[1] - curve_range[0]) / interval_val + 1) * n_bands)
         #
@@ -131,9 +132,14 @@ class TSFresh(object):
                 #
                 for i, csv in enumerate(filename):
                     #
-                    # Store the IAU Name of each files
+                    # Regex used for TESS+ZTF data to extract the IAU Name
                     #
-                    id = re.findall("_(.*?)_ZTF\d+[a-zA-Z]{1,10}_processed", csv)
+                    #id = re.findall("_(.*?)_ZTF\d+[a-zA-Z]{1,10}_processed", csv)
+                    #
+                    # Object_ids  for the PLAsTiCC data set
+                    #
+                    id = os.path.splitext(csv)[0]
+                    #
                     #
                     #
                     #
@@ -154,7 +160,8 @@ class TSFresh(object):
                         pb_df[(pb_df["flux"] == maskval) & (pb_df["uncert"] == maskval)] = maskval
                         pb_df["kind"] = band
 
-                        for t in np.arange(curve_range[0], curve_range[1] + interval_val, interval_val):
+                        #for t in np.arange(curve_range[0], curve_range[1] + interval_val, interval_val):
+                        for t in np.arange(curve_range[0], curve_range[1], interval_val):
                             if t not in pb_df["relative_time"]:
                                 pb_df.loc[t] = np.full(shape=len(pb_df.columns), fill_value=maskval)
                                 pb_df = pb_df.sort_index()
@@ -168,11 +175,12 @@ class TSFresh(object):
                     max_flux[i:] = np.full(shape=n_bands, fill_value=max_flux_list)
                     max_flux_list.clear()
 
-                data = data.drop(columns="uncert")
-                data = data[data["relative_time"] != 0.0]
-                data = data.rename(columns={'relative_time': 'time'})
+                data = data.drop(columns=["uncert", "relative_time"])
+                #data = data.drop(columns="relative_time")
+                #data = data[data["relative_time"] != 0.0]
                 data = data.reset_index()
-                data = data.drop(columns="relative_time")
+                data = data.rename(columns={'relative_time': 'time'})
+                #data = data.drop(columns="relative_time")
 
                 columns = [f"{band}_max_flux" for band in self.passbands]
 
@@ -180,8 +188,11 @@ class TSFresh(object):
                 self.max_flux = pd.DataFrame(max_flux, columns=columns)
                 self.mwebv = pd.DataFrame(mwebv_list, columns=["mwebv"])
 
+                # with open(f"../transients/data/data_.pickle", 'wb') as file:
+                #     pickle.dump(self.tsfresh_data, file)
+
         except Exception as e:
-            print(e)
+            print(f"{e} -- {csv} --- {id}")
             return
 
         print(f"\nTSFresh data is created!\n")
@@ -323,6 +334,10 @@ class TSFresh(object):
                 # Reshape the dataframe
                 #
                 extracted_df = tsfresh_data.iloc[:, feature_list]
+
+                with open(f"../latent_space_data/{self.type}/tsfresh_aad.pickle", 'wb') as file:
+                    pickle.dump(extracted_df, file)
+
                 extracted_df = extracted_df.reset_index(drop=True)
                 #
                 # Create dictionary to add metadata
@@ -394,11 +409,13 @@ class TSFresh(object):
 
         try:
 
-            if not self.mwebv.empty and self.metadata and "mwebv" in self.metadata:
-                extracted_df = pd.concat([extracted_df.reset_index(drop=True), self.mwebv.reset_index(drop=True)], axis=1)
+            if self.metadata:
 
-            if not self.max_flux.empty and self.metadata and "max_flux" in self.metadata:
-                extracted_df = pd.concat([extracted_df.reset_index(drop=True), self.max_flux.reset_index(drop=True)], axis=1)
+                if not self.mwebv.empty and "mwebv" in self.metadata:
+                    extracted_df = pd.concat([extracted_df.reset_index(drop=True), self.mwebv.reset_index(drop=True)], axis=1)
+
+                if not self.max_flux.empty and "max_flux" in self.metadata:
+                    extracted_df = pd.concat([extracted_df.reset_index(drop=True), self.max_flux.reset_index(drop=True)], axis=1)
 
             tsfresh_data["data"] = extracted_df
 
@@ -421,12 +438,17 @@ class TSFresh(object):
 
 if __name__ == '__main__':
 
-    tsfresh = TSFresh(lc_type="transients", path=f"../transients/processed_curves_good_great/",
-                      passbands=["r", "tess", "g"], metadata=["mwebv", "max_flux"], n_features=15)
-    tsfresh.generate_data()
-    tsfresh.extract_features(path=f"../transients/data/tsfresh_data.pickle")
-    tsfresh.get_important_features(path="../transients/data/tsfresh_data.pickle", method="urf")
-    tsfresh.save_data(path="../latent_space_data/transients/tsfresh.pickle")
+    # tsfresh = TSFresh(lc_type="transients", path=f"../transients/processed_data/",
+    #                   passbands=["r", "g"], n_features=20)
+    # tsfresh.generate_data()
+    # tsfresh.extract_features(path=f"../transients/data/tsfresh_data.pickle")
+    # tsfresh.get_important_features(path="../transients/data/tsfresh_data.pickle", method="urf")
+    # tsfresh.save_data(path="../latent_space_data/transients/tsfresh.pickle")
+    settings = EfficientFCParameters()
+    fc_parameter = settings.copy()
+    del fc_parameter['length']
+    print(len(settings.keys()), len(fc_parameter.keys()))
+    print(settings.keys())
 
 
 

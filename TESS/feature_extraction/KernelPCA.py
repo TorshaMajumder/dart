@@ -66,7 +66,7 @@ class Kernel_PCA(object):
 
     def __init__(self, X_train=None, lc_type=None, n_features=10, kernel='rbf', gamma=0.001,
                  alpha=0.001, fit_inverse_transform=True, n_jobs=-1, passbands=["tess"],
-                 path=None, metadata=None):
+                 path=None, metadata=None, binning=False):
 
         self.X_train = X_train
         self.type = lc_type
@@ -83,6 +83,7 @@ class Kernel_PCA(object):
         self.passbands = passbands
         self.metadata = metadata
         self.kpca_data = None
+        self.binning = binning
 
         try:
             if self.type not in ["transits", "transients"]:
@@ -157,7 +158,8 @@ class Kernel_PCA(object):
         # sqrt avg vars to get uncertainty in stds
         #
         binned_data[uncert] = np.power(binned_data[uncert], 0.5)
-
+        binned_data = binned_data.reset_index(drop=True)
+        binned_data = binned_data.set_index("relative_time", drop=False)
 
         return binned_data
 
@@ -185,7 +187,15 @@ class Kernel_PCA(object):
 
         for i, csv in enumerate(filename):
             try:
-                id = re.findall("_(.*?)_ZTF\d+[a-zA-Z]{1,10}_processed", csv)
+                #
+                # Regex used for TESS+ZTF data to extract the IAU Name
+                #
+                #id = re.findall("_(.*?)_ZTF\d+[a-zA-Z]{1,10}_processed", csv)
+                #
+                # Object_ids  for the PLAsTiCC data set
+                #
+                id = os.path.splitext(csv)
+                #
                 label.append(id[0])
                 data = pd.read_csv(self.path + csv)
                 mwebv[i] = data[f"mwebv"].unique()
@@ -199,11 +209,11 @@ class Kernel_PCA(object):
                     try:
                         if band == "tess":
                             filtered_band_data = band_data[(band_data[f"{band}_flux"].notnull()) &
-                                                   (band_data[f"{band}_uncert"].notnull())]
+                                                           (band_data[f"{band}_uncert"].notnull())]
                             nan_count = band_data.loc[:, f"{band}_flux"].isna().sum()
                             if nan_count != timesteps_tess:
                                 max_rel_time, min_rel_time = filtered_band_data["relative_time"].max(), \
-                                                     filtered_band_data["relative_time"].min()
+                                                             filtered_band_data["relative_time"].min()
                                 if max_rel_time > g_max:
                                     g_max = max_rel_time
                                 if min_rel_time < g_min:
@@ -225,19 +235,22 @@ class Kernel_PCA(object):
 
                                     if t not in time:
                                         band_data.loc[t] = np.full(shape=len(band_data.columns),
-                                                       fill_value=[t, maskval, maskval])
+                                                                   fill_value=[t, maskval, maskval])
                                         band_data = band_data.sort_index()
 
 
                                 for t in np.arange(min_rel_time, max_rel_time + interval_val_tess, interval_val_tess):
 
-                                    band_data.loc[t, f"{band}_flux"] = flux_mean
-                                    band_data.loc[t, f"{band}_uncert"] = flux_uncert_mean
+                                    if pd.isna(band_data.loc[t, f"{band}_flux"]):
+
+
+                                        band_data.loc[t, f"{band}_flux"] = flux_mean
+                                        band_data.loc[t, f"{band}_uncert"] = flux_uncert_mean
 
                             band_data = band_data.fillna(0.0)
                             band_data = band_data.sort_index()
                             #
-                            # Reshape the dataframe to (60,3)
+                            # Reshape the dataframe to (timesteps_tess,3)
                             #
                             if (len(band_data) != timesteps_tess):
                                 n_row = band_data.shape[0]
@@ -250,8 +263,11 @@ class Kernel_PCA(object):
                         elif band == "r" or "g":
 
                             band_data = data[["relative_time", f"{band}_flux", f"{band}_uncert"]].copy(deep=True)
-                            binned_data = self.binned_transients(df=band_data, interval="3D", time_col="relative_time",
-                                                                    uncert=f"{band}_uncert")
+                            if self.binning:
+                                binned_data = self.binned_transients(df=band_data, interval="3D", time_col="relative_time",
+                                                                     uncert=f"{band}_uncert")
+                            else:
+                                binned_data = band_data.copy(deep=True)
 
                             nan_count = binned_data.loc[:, f"{band}_flux"].isna().sum()
                             if nan_count != timesteps_rg:
@@ -262,11 +278,11 @@ class Kernel_PCA(object):
 
                                 max_flux[i, j] = max(binned_data.loc[:, f"{band}_flux"])
 
-                                for t in np.arange(min_rel_time, max_rel_time, 1):
+                                for t in np.arange(min_rel_time, max_rel_time, interval_val_rg):
 
                                     if t not in time:
                                         binned_data.loc[t] = np.full(shape=len(binned_data.columns),
-                                                             fill_value=[t, maskval, maskval])
+                                                                     fill_value=[t, maskval, maskval])
                                         binned_data = binned_data.sort_index()
                                 #
                                 # Apply MinMaxScalar (feature range = [0,1])
@@ -279,7 +295,7 @@ class Kernel_PCA(object):
                                 binned_data.loc[:, f"{band}_flux"].fillna(value=flux_mean, inplace=True)
                                 binned_data.loc[:, f"{band}_uncert"].fillna(value=flux_uncert_mean, inplace=True)
                                 #
-                                # Reshape the dataframe to (60,3)
+                                # Reshape the dataframe to (timesteps_rg,3)
                                 #
                                 if (len(binned_data) != timesteps_rg):
                                     n_row = binned_data.shape[0]
@@ -287,7 +303,6 @@ class Kernel_PCA(object):
                                     arr = np.zeros((diff, binned_data.shape[1]))
                                     binned_data = binned_data.append(pd.DataFrame(arr, columns=binned_data.columns),
                                                                      ignore_index=True)
-
                                 if band == "r":
                                     r_flux[i] = binned_data[f"{band}_flux"].values
 
@@ -309,6 +324,8 @@ class Kernel_PCA(object):
         x_train["mwebv"] = mwebv
         self.labels = label
         self.X_train = x_train
+        with open(f"../latent_space_data/{self.type}/k_pca_train_data.pickle", 'wb') as file:
+            pickle.dump(self.X_train, file)
 
 
     def fit_transform(self, x_train):
@@ -327,6 +344,8 @@ class Kernel_PCA(object):
 
             transformed_data = self.PCA_Estimator.fit_transform(x_train, y=None)
             PCA_decoder = self.PCA_Estimator.inverse_transform(transformed_data)
+            eigen_values = self.PCA_Estimator.eigenvalues_
+            #print(eigen_values)
 
             return transformed_data, PCA_decoder
 
@@ -374,8 +393,7 @@ class Kernel_PCA(object):
                 data, dec_data = self.fit_transform(x_train=x_train)
                 transformed_data[f"{band}_flux"] = data
                 decoded_data[f"{band}_flux"] = dec_data
-                # print(f"\n{band}, {self.X_train['tess_flux'].shape}, {self.X_train['r_flux'].shape},"
-                #       f"{self.X_train['g_flux'].shape},{dec_data.shape}\n")
+
 
             for i in range(len(feature_list)):
                 features = int(feature_list[i])
@@ -386,12 +404,13 @@ class Kernel_PCA(object):
             print(f"\nUnknown Error: {e}\n")
 
         try:
+            if self.metadata:
 
-            if "mwebv" in self.metadata:
-                kpca_data = pd.concat([pd.DataFrame(self.X_train["mwebv"]), kpca_data], axis=1)
+                if "mwebv" in self.metadata:
+                    kpca_data = pd.concat([pd.DataFrame(self.X_train["mwebv"]), kpca_data], axis=1)
 
-            if "max_flux" in self.metadata:
-                kpca_data = pd.concat([pd.DataFrame(self.X_train["max_flux"]), kpca_data], axis=1)
+                if "max_flux" in self.metadata :
+                    kpca_data = pd.concat([pd.DataFrame(self.X_train["max_flux"]), kpca_data], axis=1)
 
         except Exception as e:
             print(f"\nUnknown Error: {e}\n")
@@ -414,10 +433,6 @@ class Kernel_PCA(object):
         if not os.path.exists(f"../latent_space_data/{self.type}"):
             os.makedirs(f"../latent_space_data/{self.type}")
         #
-        #
-        #
-
-
         # Create dictionary to add metadata
         #
         data = {'data': self.kpca_data, 'labels':self.labels}
@@ -443,46 +458,75 @@ class Kernel_PCA(object):
         #
         #
         #
-        n_samples = len(self.labels)
+        # n_samples = len(self.labels)
+        n_samples = 100
         n_bands = len(self.passbands)
-        #
-        # Generate the images
-        #
-        n_row, n_col, id = 2, n_bands, 0
-        q, r = divmod(n_samples, n_row)
-        if r != 0:
-            q += 1
-        batch_size = q
-        for batch in range(batch_size):
-            fig = plt.figure(figsize=(2048, 1024))
-            fig, axs = plt.subplots(nrows=n_row, ncols=n_bands, figsize=(18, 15))
-            k = id
-            try:
-                for row in range(n_row):
+        id = 0
+        if n_bands == 1:
 
-                    if id < n_samples:
-                        for band in range(n_bands):
-                            flux = self.X_train[f"{self.passbands[band]}_flux"][id]
-                            d_flux = self.decoded_data[f"{self.passbands[band]}_flux"][id]
-                            timesteps = np.arange(len(flux))
-                            axs[row, band].set_title(f"IAU Name: {self.labels[id]} --- Band : {self.passbands[band]}",
-                                                     fontsize=18)
-                            axs[row, band].plot(timesteps, flux, c='black', label="True")
-                            axs[row, band].plot(timesteps, d_flux, c='red', label="Predicted")
-                            axs[row, band].grid(color='grey', linestyle='-.', linewidth=0.5)
-                            axs[row, band].legend(loc="best")
-
+            while id < n_samples:
+                try:
+                    fig = plt.figure(figsize=(18, 15))
+                    fig.clear()
+                    flux = self.X_train[f"{self.passbands[0]}_flux"][id]
+                    d_flux = self.decoded_data[f"{self.passbands[0]}_flux"][id]
+                    timesteps = np.arange(len(flux))
+                    plt.title(f"IAU Name: {self.labels[id]} --- Band : {self.passbands[0]}",
+                              fontsize=18)
+                    plt.scatter(timesteps, flux, c='black', label="True")
+                    plt.scatter(timesteps, d_flux, c='red', label="Predicted")
+                    plt.grid(color='grey', linestyle='-.', linewidth=0.5)
+                    plt.legend(loc="best")
+                    fig.tight_layout(pad=1.0)
+                    fig.savefig(f"reconstructed_images/{self.type}/kpca/image_{id+1}.png", bbox_inches="tight",
+                                orientation='landscape')
                     id += 1
+                except Exception as e:
+                    print(f"\nException Raised: {e}\n")
+                    id += 1
+                    continue
 
-            except Exception as e:
-                print(f"\nException Raised: {e}\n")
-                id += 1
-                continue
+        else:
+            #
+            # Generate the images
+            #
+            fig = plt.figure(figsize=(2048, 1024))
+            fig.clear()
+            n_row, n_col, id = 2, n_bands, 0
+            q, r = divmod(n_samples, n_row)
+            if r != 0:
+                q += 1
+            batch_size = q
+            for batch in range(batch_size):
+                fig, axs = plt.subplots(nrows=n_row, ncols=n_bands, figsize=(18, 15))
+                k = id
+                try:
+                    for row in range(n_row):
 
-            fig.tight_layout(pad=1.0)
-            fig.savefig(f"reconstructed_images/{self.type}/kpca/image_{k}_{id-1}.png", bbox_inches="tight",
-                        orientation='landscape')
-        print(f"\nImages are available in -- reconstructed_images/{self.type}/kpca/ -- folder.\n")
+                        if id < n_samples:
+
+                            for band in range(n_bands):
+                                flux = self.X_train[f"{self.passbands[band]}_flux"][id]
+                                d_flux = self.decoded_data[f"{self.passbands[band]}_flux"][id]
+                                timesteps = np.arange(len(flux))
+                                axs[row, band].set_title(f"IAU Name: {self.labels[id]} --- Band : {self.passbands[band]}",
+                                                     fontsize=18)
+                                axs[row, band].scatter(timesteps, flux, c='black', label="True")
+                                axs[row, band].scatter(timesteps, d_flux, c='red', label="Predicted")
+                                axs[row, band].grid(color='grey', linestyle='-.', linewidth=0.5)
+                                axs[row, band].legend(loc="best")
+
+                            id += 1
+
+                except Exception as e:
+                    print(f"\nException Raised: {e}\n")
+                    id += 1
+                    continue
+
+                fig.tight_layout(pad=1.0)
+                fig.savefig(f"reconstructed_images/{self.type}/kpca/image_{k}_{id-1}.png", bbox_inches="tight",
+                            orientation='landscape')
+        print(f"\nImages are available in -- feature_extraction/reconstructed_images/{self.type}/kpca/ -- folder.\n")
 
 
 
@@ -491,11 +535,11 @@ class Kernel_PCA(object):
 
 if __name__ == '__main__':
 
-    k_pca = Kernel_PCA(lc_type="transients", path=f"../transients/processed_curves_good_great/",
-                       passbands=["tess", "g", "r"], metadata=["mwebv", "max_flux"], n_features=10)
+    k_pca = Kernel_PCA(lc_type="transients", path=f"../transients/processed_data/",
+                       passbands=["g"], n_features=4, binning=False)
     k_pca.generate_data()
     k_pca.build_model()
-    k_pca.plot_reconstructed_data()
     k_pca.save_data()
+    #k_pca.plot_reconstructed_data()
 
 

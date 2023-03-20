@@ -5,6 +5,7 @@ import os
 import pickle
 import hdbscan
 from TESS.datasets.transients import load_latent_space
+#from sklearn.datasets import load_digits
 
 #
 # Create '/results/clustering' folder if it does not exists already
@@ -44,7 +45,7 @@ class HDBSCAN_(object):
         'transients' or 'transits'
 
     extract_type: string
-        feature extraction type - 'tsfresh', 'vae', and 'k_pca'
+        feature extraction type - 'tsfresh', 'vae', 'isomap',and 'k_pca'
 
 
     """
@@ -75,9 +76,9 @@ class HDBSCAN_(object):
             exit()
 
         try:
-            if self.extract_type not in ["k_pca", "tsfresh", "vae"]:
+            if self.extract_type not in ["k_pca", "tsfresh", "vae", "isomap"]:
                 raise TypeError(f"\nTypeError: '{self.extract_type}' is not a valid type!"
-                                f"\nPlease provide the type as - 'k_pca' , 'tsfresh', or 'vae'")
+                                f"\nPlease provide the type as - 'k_pca' , 'tsfresh', 'isomap',or 'vae'")
         except Exception as e:
             print(e)
             exit()
@@ -184,9 +185,13 @@ class HDBSCAN_(object):
 
 if __name__ == '__main__':
 
-    data = load_latent_space(extract_type='vae')
+    data = load_latent_space(extract_type='k_pca')
     X_train, labels = data['data'], data['labels']
-    hdbscan_ = HDBSCAN_(labels=labels, lc_type='transients', extract_type='vae', contamination=0.1)
+
+    # digits = load_digits()
+    # X_train, labels = digits.data, digits.target
+
+    hdbscan_ = HDBSCAN_(labels=labels, lc_type='transients', extract_type='k_pca', contamination=0.1)
     hdbscan_.fit(X_train)
     clusters, anomaly_score, anomaly_index = hdbscan_.predict(X_train)
 

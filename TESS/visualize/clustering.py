@@ -50,7 +50,7 @@ def generate_data(X=None, lc_type='transients', filename=None, image_path=None,
         clustering methods - birch or hdbscan
 
     extract_type: String
-        feature extraction methods - k_pca, tsfresh, or vae
+        feature extraction methods - k_pca, tsfresh, isomap,or vae
 
     viz_method: String
         visualization methods - umap or tsne
@@ -98,9 +98,9 @@ def generate_data(X=None, lc_type='transients', filename=None, image_path=None,
         print(e)
         exit()
     try:
-        if extract_type not in ["k_pca", "tsfresh", "vae"]:
+        if extract_type not in ["k_pca", "tsfresh", "vae", "isomap"]:
             raise TypeError(f"\nTypeError: '{extract_type}' is not a valid extract_type!"
-                            f"\nPlease provide the extract_type as - 'k_pca' , 'tsfresh', or 'vae'")
+                            f"\nPlease provide the extract_type as - 'k_pca' , 'tsfresh', 'isomap',or 'vae'")
     except Exception as e:
         print(e)
         exit()
@@ -124,18 +124,20 @@ def generate_data(X=None, lc_type='transients', filename=None, image_path=None,
     #
     # Load the images from the location - image_path
     #
-    try:
-        for file in os.listdir(image_path):
-            file_list.append(file)
-    except FileNotFoundError as e:
-        print(f"\nFileNotFoundError: Images cannot be loaded!"
-              f"\nPlease verify if the folder - {image_path} - exists.\n")
-        exit()
+    if image_path:
+        try:
+            for file in os.listdir(image_path):
+                file_list.append(file)
+        except FileNotFoundError as e:
+            print(f"\nFileNotFoundError: Images cannot be loaded!"
+                  f"\nPlease verify if the folder - {image_path} - exists.\n")
+            exit()
     #
     # Load the transient types and sub-types
     #
     try:
-        labels = pd.read_csv("../transients/labels__.csv")
+        #labels = pd.read_csv("../transients/labels__.csv")
+        labels = pd.read_csv("../transients/labels_plasticc__.csv")
         labels = labels.rename(columns={'Label': 'Transient_Sub_Type'})
     except FileNotFoundError as e:
         print(f"\nFileNotFoundError: Data cannot be loaded!"
@@ -145,7 +147,8 @@ def generate_data(X=None, lc_type='transients', filename=None, image_path=None,
     # Load the IAU_Name and their labels
     #
     try:
-        with open(f'../transients/data/transient_labels.pickle', 'rb') as file:
+        #with open(f'../transients/data/transient_labels.pickle', 'rb') as file:
+        with open(f'../transients/data/transient_labels_plasticc.pickle', 'rb') as file:
             labels_info = pickle.load(file)
     except FileNotFoundError as e:
         print(f"\nFileNotFoundError: Data cannot be loaded!"
@@ -189,11 +192,12 @@ def generate_data(X=None, lc_type='transients', filename=None, image_path=None,
         #
         # Create markers for each transient types
         #
-        ttypes_markers = ["*","X","o","^","P","D","s"]
+        #ttypes_markers = ["2", "X", "o", "^", "P", "D", "s", "*", "v", "<", ">"]
+        ttypes_markers = ["2", "X", "o", "^", "P"]
         for i, val in enumerate(zip(data.Transient_Type.unique(), ttypes_markers)):
             m_ttypes_dict[val[0]] = val[1]
         #
-        # Create a dataframe for transient type info and merge it to 'data'
+        # Create a dataframe for transient type inffdezo and merge it to 'data'
         #
         ttype_df = pd.DataFrame.from_dict(m_ttypes_dict, orient='index')
         ttype_df = ttype_df.reset_index()
@@ -252,6 +256,7 @@ def generate_data(X=None, lc_type='transients', filename=None, image_path=None,
     #
     # Store the images of the IAU_Name for individual clusters
     #
+    """
     try:
         for i in data.Cluster_ID.unique():
             #
@@ -273,7 +278,7 @@ def generate_data(X=None, lc_type='transients', filename=None, image_path=None,
     except Exception as e:
         print(f"\nUnable to store the cluster images!"
               f"\nException Raised: {e}\n")
-
+    """
     print(f"\nImages are stored in - images/{lc_type}/clustering/ - folder!\n")
 
     return data
@@ -293,7 +298,7 @@ def visualize_clusters(data=None, convex_hull=True, viz_method="umap", method=No
         plots the convex hull if TRUE
 
     extract_type: String
-        feature extraction methods - k_pca, tsfresh, or vae
+        feature extraction methods - k_pca, tsfresh, isomap,or vae
 
     method: String
         clustering methods - birch or hdbscan
@@ -338,9 +343,9 @@ def visualize_clusters(data=None, convex_hull=True, viz_method="umap", method=No
         print(e)
         exit()
     try:
-        if extract_type not in ["k_pca", "tsfresh", "vae"]:
+        if extract_type not in ["k_pca", "tsfresh", "vae", "isomap"]:
             raise TypeError(f"\nTypeError: '{extract_type}' is not a valid extract_type!"
-                            f"\nPlease provide the extract_type as - 'k_pca' , 'tsfresh', or 'vae'")
+                            f"\nPlease provide the extract_type as - 'k_pca' , 'tsfresh', 'isomap', or 'vae'")
         else:
             #
             # Generate the labels
@@ -351,6 +356,8 @@ def visualize_clusters(data=None, convex_hull=True, viz_method="umap", method=No
                 label1 = "TSFresh"
             elif extract_type == "vae":
                 label1 = "Variational Auto-Encoder"
+            elif extract_type == "isomap":
+                label1 = "Isomap"
     except Exception as e:
         print(e)
         exit()
@@ -395,7 +402,8 @@ def visualize_clusters(data=None, convex_hull=True, viz_method="umap", method=No
     #
     # Create markers for each transient types and store it in a dictionary
     #
-    ttypes_markers = ["*","X","o","^","P","D","s"]
+    #ttypes_markers = ["2", "X", "o", "^", "P", "D", "s", "*", "v", "<", ">"]
+    ttypes_markers = ["2", "X", "o", "^", "P"]
     for i, val in enumerate(zip(data.Transient_Type.unique(), ttypes_markers)):
         m_ttypes_dict[val[0]] = val[1]
     #
@@ -441,17 +449,25 @@ def visualize_clusters(data=None, convex_hull=True, viz_method="umap", method=No
         #
         for i in data.Cluster_ID.unique():
             #
-            # Plot the convex-hull
+            #
             #
             points = data[data.Cluster_ID == i][['Feature#1', 'Feature#2']].values
-            hull = ConvexHull(points)
-            x_hull = np.append(points[hull.vertices, 0], points[hull.vertices, 0][0])
-            y_hull = np.append(points[hull.vertices, 1], points[hull.vertices, 1][0])
             #
-            # Get the hex-code for the cluster id and fill the convex-hull
+            # Check if a minimum of three data points are available to create the convex hull
             #
-            data_ = data.loc[data['Cluster_ID'] == i]
-            plt.fill(x_hull, y_hull, alpha=0.130, c=data_["Cluster_Color_ID"].unique()[0], lw=2)
+            if len(points) >= 3:
+                hull = ConvexHull(points)
+                x_hull = np.append(points[hull.vertices, 0], points[hull.vertices, 0][0])
+                y_hull = np.append(points[hull.vertices, 1], points[hull.vertices, 1][0])
+                #
+                # Get the hex-code for the cluster id and fill the convex-hull
+                #
+                data_ = data.loc[data['Cluster_ID'] == i]
+                plt.fill(x_hull, y_hull, alpha=0.130, c=data_["Cluster_Color_ID"].unique()[0], lw=2)
+
+            else:
+                #
+                plot_kwds = {'alpha': 0.90, 's': 120, 'linewidths': 1.50}
     else:
         #
         plot_kwds = {'alpha': 0.90, 's': 120, 'linewidths': 1.50}
@@ -496,7 +512,7 @@ def visualize_sub_clusters(data=None, viz_method=None, method=None, extract_type
         dataframe with the distribution information
 
     extract_type: String
-        feature extraction methods - k_pca, tsfresh, or vae
+        feature extraction methods - k_pca, tsfresh, isomap,or vae
 
     method: String
         clustering methods - birch or hdbscan
@@ -519,13 +535,19 @@ def visualize_sub_clusters(data=None, viz_method=None, method=None, extract_type
     #
     m_ttypes_dict = dict()
     plot_kwds = {'alpha': 0.90, 's': 200, 'linewidths': 1.80}
-    bbox_to_anchor_param = {4: [(1.35, 1.8), (1.3, 0.5)], 3: [(1.155, 3.1), (1.135, 0.6)],
-                            2: [(1.155, 2.1), (1.135, 0.6)], 8: [(1.4, 5.1), (1.35, 0.6)]}
     #
     # Create a 'images/{lc_type}/clustering' folder if it does not exists already
     #
     if not os.path.exists(f'images/{lc_type}/clustering/'):
         os.makedirs(f'images/{lc_type}/clustering/')
+    #
+    #
+    #
+    #
+    # Create a 'images/{lc_type}/clustering/subcluster_images' folder if it does not exists already
+    #
+    if not os.path.exists(f'images/{lc_type}/clustering/{method}_{extract_type}/subcluster_images/'):
+        os.makedirs(f'images/{lc_type}/clustering/{method}_{extract_type}/subcluster_images/')
     #
     #
     #
@@ -544,9 +566,9 @@ def visualize_sub_clusters(data=None, viz_method=None, method=None, extract_type
         print(e)
         exit()
     try:
-        if extract_type not in ["k_pca", "tsfresh", "vae"]:
+        if extract_type not in ["k_pca", "tsfresh", "vae", "isomap"]:
             raise TypeError(f"\nTypeError: '{extract_type}' is not a valid extract_type!"
-                            f"\nPlease provide the extract_type as - 'k_pca' , 'tsfresh', or 'vae'")
+                            f"\nPlease provide the extract_type as - 'k_pca' , 'tsfresh', 'isomap', or 'vae'")
         else:
             #
             # Generate the labels
@@ -557,6 +579,8 @@ def visualize_sub_clusters(data=None, viz_method=None, method=None, extract_type
                 label1 = "TSFresh"
             elif extract_type == "vae":
                 label1 = "Variational Auto-Encoder"
+            elif extract_type == "isomap":
+                label1 = "Isomap"
     except Exception as e:
         print(e)
         exit()
@@ -592,20 +616,14 @@ def visualize_sub_clusters(data=None, viz_method=None, method=None, extract_type
         exit()
     #
     # Calculate the total number of clusters
-    # Plot the clusters based on odd/even counts
     #
     n_clusters = len(data.Cluster_ID.unique())
     clusters = sorted(data.Cluster_ID.unique())
     #
-    q, r = divmod(n_clusters, 2)
-    if (n_clusters <= 2 and r == 0) or (r != 0):
-        n_row, n_col = n_clusters, 1
-    else:
-        n_row, n_col = q, 2
-    #
     # Create markers for each transient types and store it in a dictionary
     #
-    ttypes_markers = ["*", "X", "o", "^", "P", "D", "s"]
+    #ttypes_markers = ["2", "X", "o", "^", "P", "D", "s", "*", "v", "<", ">"]
+    ttypes_markers = ["2", "X", "o", "^", "P"]
     #
     for i, val in enumerate(zip(data.Transient_Type.unique(), ttypes_markers)):
         m_ttypes_dict[val[0]] = val[1]
@@ -632,139 +650,90 @@ def visualize_sub_clusters(data=None, viz_method=None, method=None, extract_type
                          for i, v in enumerate(zip(ttype_df["Transient_Type"],
                             ttype_df["Transient_Type_Marker"]))]
     #
-    # Plot the figures
-    #
-    fig, axs = plt.subplots(nrows=n_row, ncols=n_col, figsize=(15, 15))
     #
     #
-    #
-    plt.suptitle(f"Clustering: {label2} --- Feature Extraction: {label1}", **csfont, fontsize=22)
-    #
-    #
-    #
-    c_id = 0
-    for r in range(n_row):
-        if n_clusters % 2 == 0 and n_clusters > 2:
-            for c in range(n_col):
-                #
-                #
-                #
-                axs[r, c].set_title(f"Cluster : {clusters[c_id]+1}", fontsize=18, **csfont)
-                axs[r, c].set_xlabel(f'{label3} Feature #1', fontsize=13, **csfont)
-                axs[r, c].set_ylabel(f'{label3} Feature #2', fontsize=13, **csfont)
-                axs[r, c].tick_params(axis='x', labelsize=10)
-                axs[r, c].tick_params(axis='y', labelsize=10)
-                #
-                # Plot the convex-hull
-                #
-                points = data[data.Cluster_ID == clusters[c_id]][['Feature#1', 'Feature#2']].values
-                hull = ConvexHull(points)
-                x_hull = np.append(points[hull.vertices, 0], points[hull.vertices, 0][0])
-                y_hull = np.append(points[hull.vertices, 1],points[hull.vertices, 1][0])
-                #
-                # Get the hex-code for the cluster id and fill the convex-hull
-                #
-                df1 = data.loc[data['Cluster_ID'] == clusters[c_id]]
-                axs[r, c].fill(x_hull, y_hull, alpha=0.135, c=df1["Cluster_Color_ID"].unique()[0], lw=4)
-                #
-                # Group the dataframe by transient-type marker
-                #
-                for marker, df2 in df1.groupby('Transient_Type_Marker'):
-                    #
-                    # Group the dataframe by transient sub-type
-                    #
-                    for tstype, df3 in df2.groupby('Transient_Sub_Type'):
-                        #
-                        # Plot the data
-                        #
-                        axs[r, c].scatter(x=df3["Feature#1"], y=df3["Feature#2"], label=tstype,
-                                          c=df3["Transient_Sub_Type_Color"].unique()[0],
-                                          marker=marker, edgecolor='white', **plot_kwds)
-                #
-                # Plot the grid
-                #
-                axs[r, c].grid(color='lightgray', linestyle='dotted', zorder=0)
-                #
-                c_id += 1
-
-        else:
-            #
-            #
-            #
-            axs[r].set_title(f"Cluster : {clusters[c_id]+1}", fontsize=18, **csfont)
-            axs[r].set_xlabel(f'{label3} Feature #1', fontsize=13, **csfont)
-            axs[r].set_ylabel(f'{label3} Feature #2', fontsize=13, **csfont)
-            axs[r].tick_params(axis='x', labelsize=10)
-            axs[r].tick_params(axis='y', labelsize=10)
-            #
-            # Plot the convex-hull
-            #
-            points = data[data.Cluster_ID == clusters[c_id]][['Feature#1', 'Feature#2']].values
+    for n in range(n_clusters):
+        #
+        # Plot the figures per sub-cluster
+        #
+        plt.clf()
+        plt.plot(figsize=(15, 15))
+        plt.suptitle(f"Clustering: {label2} --- Feature Extraction: {label1}", **csfont, fontsize=22)
+        plt.title(f"Cluster : {n+1}", fontsize=18, **csfont)
+        plt.xlabel(f'{label3} Feature #1', fontsize=13, **csfont)
+        plt.ylabel(f'{label3} Feature #2', fontsize=13, **csfont)
+        plt.tick_params(axis='x', labelsize=10)
+        plt.tick_params(axis='y', labelsize=10)
+        #
+        # Plot the convex-hull
+        #
+        points = data[data.Cluster_ID == clusters[n]][['Feature#1', 'Feature#2']].values
+        #
+        # Check if a minimum of three data points are available to create the convex hull
+        #
+        if len(points) >= 3:
             hull = ConvexHull(points)
             x_hull = np.append(points[hull.vertices, 0], points[hull.vertices, 0][0])
-            y_hull = np.append(points[hull.vertices, 1], points[hull.vertices, 1][0])
+            y_hull = np.append(points[hull.vertices, 1],points[hull.vertices, 1][0])
             #
             # Get the hex-code for the cluster id and fill the convex-hull
             #
-            df1 = data.loc[data['Cluster_ID'] == clusters[c_id]]
-            axs[r].fill(x_hull, y_hull, alpha=0.135, c=df1["Cluster_Color_ID"].unique()[0], lw=4)
+            df1 = data.loc[data['Cluster_ID'] == clusters[n]]
+            plt.fill(x_hull, y_hull, alpha=0.135, c=df1["Cluster_Color_ID"].unique()[0], lw=4)
+        else:
             #
-            # Group the dataframe by transient-type marker
+            plot_kwds = {'alpha': 0.90, 's': 120, 'linewidths': 1.50}
+            df1 = data.loc[data['Cluster_ID'] == clusters[n]]
+
+        #
+        # Group the dataframe by transient-type marker
+        #
+        for marker, df2 in df1.groupby('Transient_Type_Marker'):
             #
-            for marker, df2 in df1.groupby('Transient_Type_Marker'):
+            # Group the dataframe by transient sub-type
+            #
+            for tstype, df3 in df2.groupby('Transient_Sub_Type'):
                 #
-                # Group the dataframe by transient sub-type
+                # Plot the data
                 #
-                for tstype, df3 in df2.groupby('Transient_Sub_Type'):
-                    #
-                    # Plot the data
-                    #
-                    axs[r].scatter(x=df3["Feature#1"], y=df3["Feature#2"], label=tstype,
-                                   c=df3["Transient_Sub_Type_Color"].unique()[0],
-                                   marker=marker, edgecolor='white', **plot_kwds)
-            #
-            # Plot the grid
-            #
-            axs[r].grid(color='lightgray', linestyle='dotted', zorder=0)
-            #
-            c_id += 1
-    #
-    # Plot the legends
-    #
-    if n_clusters in bbox_to_anchor_param.keys():
-        legend_1 = plt.legend(handles=legend_elements_1, loc='upper right', title= "Transient Sub-Types", ncol=1,
-                              title_fontsize=12, bbox_to_anchor=bbox_to_anchor_param[n_clusters][0],
+                plt.scatter(x=df3["Feature#1"], y=df3["Feature#2"], label=tstype,
+                            c=df3["Transient_Sub_Type_Color"].unique()[0],
+                            marker=marker, edgecolor='white', **plot_kwds)
+        #
+        # Plot the grid
+        #
+        plt.grid(color='lightgray', linestyle='dotted', zorder=0)
+        #
+        # Plot the legends
+        #
+        legend_1 = plt.legend(handles=legend_elements_1, loc='lower left', title= "Transient Sub-Types", ncol=1,
+                              title_fontsize=12, bbox_to_anchor=(1.0, 0.0),
                               fancybox=True, fontsize=11)
 
-        legend_2 = plt.legend(handles=legend_elements_2, loc='lower right', title= "Transient Types",
-                              title_fontsize=12, bbox_to_anchor=bbox_to_anchor_param[n_clusters][1],
+        legend_2 = plt.legend(handles=legend_elements_2, loc='upper left', title= "Transient Types",
+                              title_fontsize=12, bbox_to_anchor=(1.0, 0.0),
                               fancybox=True, fontsize=11)
+        #
+        #
+        #
+        plt.gca().add_artist(legend_1)
+        plt.tight_layout(pad=2.0)
+        plt.savefig(f'images/{lc_type}/clustering/{method}_{extract_type}/subcluster_images/{method}_{extract_type}_{viz_method}_cluster_{n}.png'
+                    , bbox_inches='tight')
 
-    else:
-        legend_1 = plt.legend(handles=legend_elements_1, loc='upper right', title= "Transient Sub-Types", ncol=1,
-                              title_fontsize=12, bbox_to_anchor=(1.0, 0.0), fancybox=True, fontsize=11)
-
-        legend_2 = plt.legend(handles=legend_elements_2, loc='lower right', title= "Transient Types",
-                              title_fontsize=12, bbox_to_anchor=(1.0, 0.0), fancybox=True, fontsize=11)
-    #
-    #
-    #
-    plt.gca().add_artist(legend_1)
-    fig.tight_layout(pad=2.0)
-    fig.savefig(f'images/{lc_type}/clustering/{method}_{extract_type}_{viz_method}_sub-cluster.png', bbox_inches='tight')
-    print(f"\nSub-Clusters are generated in - images/{lc_type}/clustering/ - folder!\n")
+    print(f"\nSub-Clusters are generated in - images/{lc_type}/clustering/{method}_{extract_type}/subcluster_images/ - folder!\n")
     return
 
 
 if __name__ == '__main__':
 
-    data = load_latent_space(extract_type='tsfresh')
+    data = load_latent_space(extract_type='k_pca')
     X_train, labels = data['data'], data['labels']
-    data_info = generate_data(lc_type="transients", filename="hdbscan_tsfresh.pickle", method='hdbscan',
-                              viz_method='umap', image_path="processed/", X=X_train, lc_labels=labels,
-                              extract_type='tsfresh')
-    visualize_clusters(data=data_info, convex_hull=True, viz_method="umap", method="hdbscan",
-                       extract_type="tsfresh")
-    visualize_sub_clusters(data=data_info, viz_method="umap", method="hdbscan",
-                          extract_type="tsfresh")
+    data_info = generate_data(lc_type="transients", filename="hdbscan_k_pca.pickle", method='hdbscan',
+                              viz_method='tsne', X=X_train, lc_labels=labels,
+                              extract_type='k_pca')
+    visualize_clusters(data=data_info, convex_hull=True, viz_method="tsne", method="hdbscan",
+                       extract_type="k_pca")
+    visualize_sub_clusters(data=data_info, viz_method="tsne", method="hdbscan",
+                           extract_type="k_pca")
 

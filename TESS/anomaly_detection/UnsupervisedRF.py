@@ -71,7 +71,7 @@ class UnsupervisedRandomForest(object):
         'transients' or 'transits'
 
     extract_type: string
-        feature extraction type - 'tsfresh', 'vae', and 'k_pca'
+        feature extraction type - 'tsfresh', 'vae', 'isomap',and 'k_pca'
 
 
     """
@@ -112,9 +112,9 @@ class UnsupervisedRandomForest(object):
             exit()
 
         try:
-            if self.extract_type not in ["k_pca", "tsfresh", "vae"]:
+            if self.extract_type not in ["k_pca", "tsfresh", "vae", "isomap"]:
                 raise TypeError(f"\nTypeError: '{self.extract_type}' is not a valid type!"
-                                f"\nPlease provide the type as - 'k_pca' , 'tsfresh', or 'vae'")
+                                f"\nPlease provide the type as - 'k_pca' , 'tsfresh', 'isomap',or 'vae'")
         except Exception as e:
             print(e)
             exit()
@@ -169,7 +169,7 @@ class UnsupervisedRandomForest(object):
         #
         # Number of runs
         #
-        runs = 10
+        runs = 2
         #
         # Select the (100-(idx*100))th percentile of the weirdness score
         #
@@ -338,27 +338,27 @@ class UnsupervisedRandomForest(object):
 
 if __name__ == '__main__':
 
-    data = load_latent_space(extract_type='vae')
+    data = load_latent_space(extract_type='k_pca')
     X_train, labels = data['data'], data['labels']
 
     params = { 'X': X_train,
               'n_features': X_train.shape[1],
               'max_depth': 100,
               'min_samples_split': 3,
-              'max_features': 'log2',
+              'max_features': 'sqrt',
               'bootstrap': False,
               'n_samples': X_train.shape[0],
-              'n_estimators': 50,
+              'n_estimators': 5,
               'random_state': 0,
               'labels': labels,
               'lc_type': 'transients',
               'contamination': 0.1,
-              'extract_type': 'vae'
+              'extract_type': 'k_pca'
             }
 
     URF = UnsupervisedRandomForest(**params)
     anomaly_index, anomaly_score = URF.fit_transform()
-    features = URF.get_feature_importance()
+    #features = URF.get_feature_importance()
 
 
 

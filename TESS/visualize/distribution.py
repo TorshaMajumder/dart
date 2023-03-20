@@ -77,7 +77,8 @@ def generate_data(lc_type='transients', filename=None):
     # Load the transient types and sub-types
     #
     try:
-        labels = pd.read_csv("../transients/labels__.csv")
+        #labels = pd.read_csv("../transients/labels__.csv")
+        labels = pd.read_csv("../transients/labels_plasticc__.csv")
         labels = labels.rename(columns={'Label': 'Transient_Sub_Type'})
     except FileNotFoundError as e:
         print(f"\nFileNotFoundError: Data cannot be loaded!"
@@ -87,7 +88,8 @@ def generate_data(lc_type='transients', filename=None):
     # Load the IAU_Name and their labels
     #
     try:
-        with open(f'../transients/data/transient_labels.pickle', 'rb') as file:
+        #with open(f'../transients/data/transient_labels.pickle', 'rb') as file:
+        with open(f'../transients/data/transient_labels_plasticc.pickle', 'rb') as file:
             labels_info = pickle.load(file)
     except FileNotFoundError as e:
         print(f"\nFileNotFoundError: Data cannot be loaded!"
@@ -130,7 +132,8 @@ def generate_data(lc_type='transients', filename=None):
         #
         # Create markers for each transient types
         #
-        ttypes_markers = ["*", "X", "o", "^", "P", "D", "s"]
+        #ttypes_markers = ["2", "X", "o", "^", "P", "D", "s", "*", "v", "<", ">"]
+        ttypes_markers = ["2", "X", "o", "^", "P"]
         for i, val in enumerate(zip(data.Transient_Type.unique(), ttypes_markers)):
             m_ttypes_dict[val[0]] = val[1]
         #
@@ -165,7 +168,7 @@ def generate_data(lc_type='transients', filename=None):
         # generate individual colors for transient types
         #
         n_ttypes = len(data['Transient_Type'].unique())
-        c_ttypes = mcp.gen_color(cmap="Set2", n=n_ttypes)
+        c_ttypes = mcp.gen_color(cmap="Spectral", n=n_ttypes)
         #
         # Create a dict() of colors for each transient types
         #
@@ -263,7 +266,8 @@ def visualize_dist(data=None, lc_type='transients'):
     #
     ttype_counts = ttype_df["Transient_Type_Counts"].to_numpy()
     percent = 100.*ttype_counts/ttype_counts.sum()
-    explode = (0, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1)
+    #explode = (0, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1)
+    explode = (0, 0.1, 0.1, 0.1, 0.1)
     #
     # Plot the pie-plot
     #
@@ -295,7 +299,7 @@ def visualize_dist(data=None, lc_type='transients'):
 
 if __name__ == '__main__':
 
-    data = load_latent_space(extract_type='vae')
+    data = load_latent_space(extract_type='k_pca')
     X_train, labels = data['data'], data['labels']
-    data_info = generate_data(lc_type="transients", filename="birch_vae.pickle")
+    data_info = generate_data(lc_type="transients", filename="hdbscan_k_pca.pickle")
     visualize_dist(data=data_info)

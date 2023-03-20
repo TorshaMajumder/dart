@@ -43,7 +43,7 @@ class Birch_(object):
         'transients' or 'transits'
 
     extract_type: string
-        feature extraction type - 'tsfresh', 'vae', and 'k_pca'
+        feature extraction type - 'tsfresh', 'vae', 'isomap',and 'k_pca'
 
 
     """
@@ -70,9 +70,9 @@ class Birch_(object):
             exit()
 
         try:
-            if self.extract_type not in ["k_pca", "tsfresh", "vae"]:
+            if self.extract_type not in ["k_pca", "tsfresh", "vae", "isomap"]:
                 raise TypeError(f"\nTypeError: '{self.extract_type}' is not a valid type!"
-                                 f"\nPlease provide the type as - 'k_pca' , 'tsfresh', or 'vae'")
+                                 f"\nPlease provide the type as - 'k_pca' , 'tsfresh', 'isomap', or 'vae'")
         except Exception as e:
             print(e)
             exit()
@@ -146,7 +146,7 @@ if __name__ == '__main__':
 
     data = load_latent_space(extract_type='tsfresh')
     X_train, labels = data['data'], data['labels']
-    brc = Birch_(n_clusters=3, threshold=0.005, labels=labels, lc_type='transients', extract_type='tsfresh')
+    brc = Birch_(n_clusters=20, threshold=0.005, labels=labels, lc_type='transients', extract_type='tsfresh')
     brc.fit(X_train)
     clusters = brc.predict(X_train)
 
