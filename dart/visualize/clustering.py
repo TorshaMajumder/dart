@@ -729,6 +729,7 @@ if __name__ == '__main__':
 
     data = load_latent_space(extract_type='k_pca')
     X_train, labels = data['data'], data['labels']
+<<<<<<< HEAD:dart/visualize/clustering.py
     data_info = generate_data(lc_type="transients", filename="hdbscan_k_pca.pickle", method='hdbscan',
                               viz_method='tsne', X=X_train, lc_labels=labels,
                               extract_type='k_pca')
@@ -736,4 +737,13 @@ if __name__ == '__main__':
                        extract_type="k_pca")
     visualize_sub_clusters(data=data_info, viz_method="tsne", method="hdbscan",
                            extract_type="k_pca")
+=======
+    data_info = generate_data(lc_type="transients", filename="hdbscan_tsfresh.pickle", method='hdbscan',
+                              viz_method='umap', image_path="processed/", X=X_train, lc_labels=labels,
+                              extract_type='tsfresh')
+    visualize_clusters(data=data_info, convex_hull=True, viz_method="umap", method="hdbscan",
+                       extract_type="tsfresh")
+    visualize_sub_clusters(data=data_info, viz_method="umap", method="hdbscan",
+                          extract_type="tsfresh")
+>>>>>>> main:TESS/visualize/clustering.py
 

@@ -75,6 +75,10 @@ def generate_data(lc_type='transients', filename=None):
               f"\nPlease verify if the folder - ../transients/labels__.csv - exists.\n")
         exit()
 
+<<<<<<< HEAD:dart/visualize/anomaly.py
+=======
+    test = pd.read_csv("../transients/transients.csv")
+>>>>>>> main:TESS/visualize/anomaly.py
     #
     # Load the IAU_Name and their labels
     #
@@ -235,10 +239,10 @@ def visualize_anomaly_with_sns(data=None, extract_type=None, method=None, lc_typ
         plot = sns.distplot(d['Anomaly_Score'], rug=False, hist=True, ax=axs[i],
                             color=d['Transient_Type_Color'].unique()[0], kde=True,
                             kde_kws={"color": "k", "lw": 2, "label": "KDE"})
-        l_ = plot.lines[0]
-        x = l_.get_xydata()[:, 0]
-        y = l_.get_xydata()[:, 1]
-        plot.fill_between(x, y, color=d['Transient_Type_Color'].unique()[0], alpha=0.40)
+        # l_ = plot.lines[0]
+        # x = l_.get_xydata()[:, 0]
+        # y = l_.get_xydata()[:, 1]
+        # plot.fill_between(x, y, color=d['Transient_Type_Color'].unique()[0], alpha=0.40)
         plot.set(yticklabels=[])
         plot.set_xlabel("Anomaly Score", fontsize=14)
         plot.set_ylabel(ttype, fontsize=15)
@@ -373,7 +377,13 @@ def visualize_anomaly_with_joypy(data=None, extract_type=None, method=None, lc_t
 
 if __name__ == '__main__':
 
+<<<<<<< HEAD:dart/visualize/anomaly.py
     data_info = generate_data(lc_type="transients", filename="iforest_k_pca.pickle")
     visualize_anomaly_with_joypy(data_info, lc_type="transients", extract_type="k_pca", method="iforest")
     visualize_anomaly_with_sns(data_info, lc_type="transients", extract_type="k_pca", method="iforest")
+=======
+    data_info = generate_data(lc_type="transients", filename="urf_k_pca.pickle")
+    visualize_anomaly_with_joypy(data_info, lc_type="transients", extract_type="k_pca", method="urf")
+    visualize_anomaly_with_sns(data_info, lc_type="transients", extract_type="k_pca", method="urf")
+>>>>>>> main:TESS/visualize/anomaly.py
 

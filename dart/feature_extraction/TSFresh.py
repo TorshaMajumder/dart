@@ -23,7 +23,15 @@ class TSFresh(object):
     """
 
     TSFresh is a feature extraction tool applied with an Unsupervised Random Forest Classifier (URF)
+<<<<<<< HEAD:dart/feature_extraction/TSFresh.py
     or Linear PCA (PCA) for dimensionality reduction.
+=======
+    or Linear PCA (PCA) for dimensionality reduction of the light curves from NASA's TESS telescope.
+
+    The light curves are available in the folder -
+        -- ../transients/data/transients.pickle
+        -- ../transits/data/transits.pickle
+>>>>>>> main:TESS/feature_extraction/TSFresh.py
 
     Parameters
     ----------
@@ -37,9 +45,17 @@ class TSFresh(object):
 
     """
 
+<<<<<<< HEAD:dart/feature_extraction/TSFresh.py
     def __init__(self, lc_type=None, n_features=10, metadata=None):
 
         self.type = lc_type
+=======
+    def __init__(self, lc_type=None, n_features=10, passbands=["tess"], path=None, metadata=None):
+
+        self.type = lc_type
+        self.path = path
+        self.passbands = passbands
+>>>>>>> main:TESS/feature_extraction/TSFresh.py
         self.metadata = metadata
         self.n_features = n_features
         self.tsfresh_data = None
@@ -55,6 +71,7 @@ class TSFresh(object):
             if self.type == "transits":
                 raise NotImplementedError(f"\nNotImplementedError: Please specify the -- type -- as 'transients'!\n"
                                           f"'{self.type}' is not implemented yet!\n")
+<<<<<<< HEAD:dart/feature_extraction/TSFresh.py
         except Exception as e:
             print(e)
             exit()
@@ -67,11 +84,37 @@ class TSFresh(object):
                         raise ValueError(f"\nValueError: '{i}' is an invalid metadata!"
                                          f"\nPlease provide parameters as - 'max_flux' for maximum flux, 'mwebv' "
                                          f"for Milky Way extinction.")
+=======
+>>>>>>> main:TESS/feature_extraction/TSFresh.py
         except Exception as e:
             print(e)
             exit()
 
+        try:
 
+<<<<<<< HEAD:dart/feature_extraction/TSFresh.py
+=======
+            if self.metadata:
+                for i in self.metadata:
+                    if i not in ["max_flux", "mwebv"]:
+                        raise ValueError(f"\nValueError: '{i}' is an invalid metadata!"
+                                         f"\nPlease provide parameters as - 'max_flux' for maximum flux, 'mwebv' "
+                                         f"for Milky Way extinction.")
+        except Exception as e:
+            print(e)
+            exit()
+
+        try:
+
+            for i in self.passbands:
+                if i not in ["tess", "r", "g"]:
+                    raise ValueError(f"\nValueError: '{i}' is an invalid passband!"
+                                     f"\nPlease provide passbands as - 'tess', 'r' for ZTF r-band, 'g' for ZTF g-band.")
+        except Exception as e:
+            print(e)
+            exit()
+
+>>>>>>> main:TESS/feature_extraction/TSFresh.py
     def generate_data(self):
 
         """
@@ -88,7 +131,93 @@ class TSFresh(object):
             TSFresh compatible dataframe with the columns in sequence -
 
         """
+<<<<<<< HEAD:dart/feature_extraction/TSFresh.py
         pass
+=======
+        mwebv_list, max_flux_list = list(), list()
+
+        #
+        # Store the list of files from the path
+        #
+        scaler = MinMaxScaler()
+        filename = os.listdir(self.path)
+        #
+        # Declare all the variables
+        #
+        curve_range = (-30, 70)
+        maskval, interval_val, n_bands = 0.0, 0.5, len(self.passbands)
+        max_flux = np.zeros(shape=(len(filename), n_bands))
+        timesteps = int(((curve_range[1] - curve_range[0]) / interval_val + 1) * n_bands)
+        #
+        # Declare a dataframe
+        #
+        data = pd.DataFrame()
+        #
+        #
+        #
+        try:
+            #
+            # Check the type of the file
+            #
+            if self.type == "transients":
+                #
+                for i, csv in enumerate(filename):
+                    #
+                    # Store the IAU Name of each files
+                    #
+                    id = re.findall("_(.*?)_ZTF\d+[a-zA-Z]{1,10}_processed", csv)
+                    #
+                    #
+                    #
+                    df = pd.read_csv(self.path + csv)
+                    df.index = df["relative_time"]
+                    df = df.fillna(maskval)
+                    mwebv_list.append(df["mwebv"].unique())
+                    #
+                    #
+                    #
+                    combined_df = pd.DataFrame()
+                    #
+                    for band in self.passbands:
+
+                        pb_df = df[["relative_time"]].copy()
+                        pb_df["uncert"] = df[f"{band}_uncert"]
+                        pb_df["flux"] = df[f"{band}_flux"]
+                        pb_df[(pb_df["flux"] == maskval) & (pb_df["uncert"] == maskval)] = maskval
+                        pb_df["kind"] = band
+
+                        for t in np.arange(curve_range[0], curve_range[1] + interval_val, interval_val):
+                            if t not in pb_df["relative_time"]:
+                                pb_df.loc[t] = np.full(shape=len(pb_df.columns), fill_value=maskval)
+                                pb_df = pb_df.sort_index()
+
+                        max_flux_list.append(max(pb_df["flux"]))
+                        data_ = scaler.fit_transform(pb_df[["flux"]])
+                        pb_df.flux = data_[:, 0]
+                        combined_df = pd.concat([pb_df, combined_df])
+                    combined_df["id"] = np.full(shape=timesteps, fill_value=id)
+                    data = pd.concat([combined_df, data])
+                    max_flux[i:] = np.full(shape=n_bands, fill_value=max_flux_list)
+                    max_flux_list.clear()
+
+                data = data.drop(columns="uncert")
+                data = data[data["relative_time"] != 0.0]
+                data = data.rename(columns={'relative_time': 'time'})
+                data = data.reset_index()
+                data = data.drop(columns="relative_time")
+
+                columns = [f"{band}_max_flux" for band in self.passbands]
+
+                self.tsfresh_data = data
+                self.max_flux = pd.DataFrame(max_flux, columns=columns)
+                self.mwebv = pd.DataFrame(mwebv_list, columns=["mwebv"])
+
+        except Exception as e:
+            print(e)
+            return
+
+        print(f"\nTSFresh data is created!\n")
+>>>>>>> main:TESS/feature_extraction/TSFresh.py
 
     def extract_features(self, path=None):
 
@@ -302,6 +431,7 @@ class TSFresh(object):
 
         try:
 
+<<<<<<< HEAD:dart/feature_extraction/TSFresh.py
             if self.metadata:
 
                 if not self.mwebv.empty and "mwebv" in self.metadata:
@@ -309,6 +439,13 @@ class TSFresh(object):
 
                 if not self.max_flux.empty and "max_flux" in self.metadata:
                     extracted_df = pd.concat([extracted_df.reset_index(drop=True), self.max_flux.reset_index(drop=True)], axis=1)
+=======
+            if not self.mwebv.empty and self.metadata and "mwebv" in self.metadata:
+                extracted_df = pd.concat([extracted_df.reset_index(drop=True), self.mwebv.reset_index(drop=True)], axis=1)
+
+            if not self.max_flux.empty and self.metadata and "max_flux" in self.metadata:
+                extracted_df = pd.concat([extracted_df.reset_index(drop=True), self.max_flux.reset_index(drop=True)], axis=1)
+>>>>>>> main:TESS/feature_extraction/TSFresh.py
 
             tsfresh_data["data"] = extracted_df
 
@@ -331,16 +468,24 @@ class TSFresh(object):
 
 if __name__ == '__main__':
 
+<<<<<<< HEAD:dart/feature_extraction/TSFresh.py
     tsfresh = TSFresh(lc_type="transients", n_features=20)
+=======
+    tsfresh = TSFresh(lc_type="transients", path=f"../transients/processed_curves_good_great/",
+                      passbands=["r", "tess", "g"], metadata=["mwebv", "max_flux"], n_features=15)
+>>>>>>> main:TESS/feature_extraction/TSFresh.py
     tsfresh.generate_data()
     tsfresh.extract_features(path=f"../transients/data/tsfresh_data.pickle")
     tsfresh.get_important_features(path="../transients/data/tsfresh_data.pickle", method="urf")
     tsfresh.save_data(path="../latent_space_data/transients/tsfresh.pickle")
+<<<<<<< HEAD:dart/feature_extraction/TSFresh.py
     # settings = EfficientFCParameters()
     # fc_parameter = settings.copy()
     # del fc_parameter['length']
     # print(len(settings.keys()), len(fc_parameter.keys()))
     # print(settings.keys())
+=======
+>>>>>>> main:TESS/feature_extraction/TSFresh.py
 
 
 
