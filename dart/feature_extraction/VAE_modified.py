@@ -451,6 +451,14 @@ class VAE(keras.Model):
         # fig.show()
         fig.savefig("../light_curve_plots/" + str(num) + ".png")
 
+    def save_latent_space(self, X_in):
+        latent_space = vae.encoder(X_in)
+
+        with open(f"../latent_space_data/vae_latent_space.pickle", 'wb') as file:
+            pickle.dump(latent_space, file)
+
+        return latent_space
+
 
 class GenerateData(object):
 
@@ -645,6 +653,9 @@ if __name__ == '__main__':
         })
 
     vae.test_model(prep_inp, prep_out)
+
+    # Save latent space
+    latentspace = vae.save_latent_space(X)
 
 
 
