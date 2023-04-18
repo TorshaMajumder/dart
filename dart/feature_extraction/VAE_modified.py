@@ -53,6 +53,7 @@ class Sampling(layers.Layer):
 
         return output
 
+
 class Encoder(keras.Model):
     def __init__(self, shapes, mask_val=0, name='encoder', **kwargs):
         # properties
@@ -110,6 +111,7 @@ class Encoder(keras.Model):
         z = self.z([z_mean, z_log_var])
 
         return z_mean, z_log_var, z
+
 
 class Decoder(keras.Model):
     def __init__(self, shapes, mask_val=0, name='decoder', **kwargs):
@@ -356,7 +358,7 @@ class VAE(keras.Model):
             x_test = np.array([x_test[i] for i in indices])
             y_test = np.array([y_test[i] for i in indices])
 
-        test_inp_two = x_test[:, :, :2]
+        test_inp_two = x_test[:, :, [0, 3]]
 
         print('test_inp_one shape: ', x_test.shape)
         print('test_inp_two shape: ', test_inp_two.shape)
@@ -387,7 +389,7 @@ class VAE(keras.Model):
             if i == 0:
                 print('shape of predicted data: ', predicted.shape)
 
-        #     self.plot_band_pred(y_test[i], predicted, i, test_inp_two[i])
+            self.plot_band_pred(y_test[i], predicted, i, test_inp_two[i])
 
         print("done predicting")
         #
@@ -413,15 +415,15 @@ class VAE(keras.Model):
             time, filter_ID = time_filters[i]
             raw_flux = raw[i, 0]
             pred_flux = pred[i, 0]
-            if filter_ID == 4.8:
+            if filter_ID == 4.716:
                 raw_g_flux.append(raw_flux)
                 pred_g_flux.append(pred_flux)
                 g_time.append(time)
-            elif filter_ID == 6.5:
+            elif filter_ID == 6.215:
                 raw_r_flux.append(raw_flux)
                 pred_r_flux.append(pred_flux)
                 r_time.append(time)
-            elif filter_ID == 7.9:
+            elif filter_ID == 7.865:
                 raw_tess_flux.append(raw_flux)
                 pred_tess_flux.append(pred_flux)
                 tess_time.append(time)
@@ -608,6 +610,7 @@ class GenerateData(object):
         #
         print(f"\nVAE latent space data is extracted and stored "
               f"in -- /latent_space_data/{self.type} -- folder!\n")
+
 
 if __name__ == '__main__':
 
