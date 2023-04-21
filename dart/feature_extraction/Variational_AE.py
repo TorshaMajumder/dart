@@ -1,3 +1,12 @@
+import sys
+import tensorflow.keras
+import pandas as pd
+import sklearn as sk
+import scipy as sp
+import tensorflow as tf
+import numpy as np
+import platform
+
 #
 # Import all the dependencies
 #
@@ -23,7 +32,7 @@ from tqdm import tqdm
 from keras import layers, Input, Model
 from keras.callbacks import EarlyStopping
 from keras.layers import (GRU, Dense, Lambda, Masking, RepeatVector, TimeDistributed, concatenate)
-from keras.optimizers import adam_v2
+from keras.optimizers.legacy import adam
 from sklearn.manifold import TSNE
 
 #
@@ -496,7 +505,7 @@ class VAE(keras.Model):
 
 class GenerateData(object):
 
-    def __init__(self, lc_type=None, passbands=["tess"], path=None, metadata=None):
+    def __init__(self, lc_type=None, passbands=["r", "g"], path=None, metadata=None):
 
         """
         Generates data for Variational Auto-Encoder
@@ -507,7 +516,7 @@ class GenerateData(object):
             type of light curves (transits or transients)
 
         n_filters: int (default =1)
-            number of filters for the TESS light curves
+            number of filters for the PLAsTiCC light curves
 
         path: string
             the file location of the light curves
@@ -536,10 +545,10 @@ class GenerateData(object):
 
             if self.metadata:
                 for i in self.metadata:
-                    if i not in ["max_flux", "mwebv"]:
+                    if i not in ["max_flux", "mwebv", "redshift"]:
                         raise ValueError(f"\nValueError: '{i}' is an invalid metadata!"
                                          f"\nPlease provide parameters as - 'max_flux' for maximum flux, 'mwebv' "
-                                         f"for Milky Way extinction.")
+                                         f"for Milky Way extinction, and 'redshift'.")
         except Exception as e:
             print(e)
             exit()
@@ -547,22 +556,22 @@ class GenerateData(object):
         try:
 
             for i in self.passbands:
-                if i not in ["tess", "r", "g"]:
+                if i not in ["r", "g"]:
                     raise ValueError(f"\nValueError: '{i}' is an invalid passband!"
-                                     f"\nPlease provide passbands as - 'tess', 'r' for ZTF r-band, 'g' for ZTF g-band.")
+                                     f"\nPlease provide passbands as - 'r' for PLAsTiCC r-band, 'g' for PLAsTiCC g-band.")
         except Exception as e:
             print(e)
             exit()
 
     def generate_data(self):
 
-        scaler = MinMaxScaler()
+        #scaler = MinMaxScaler()
         curve_range = (-30, 70)
         band_flux = dict()
         label, columns = list(), list()
         filename = os.listdir(self.path)
-        col_to_drop = ["max_flux", "mwebv"]
-        passbands_metadata = {"tess": 7.865, "r": 6.215, "g": 4.716}
+        col_to_drop = ["redshift", "mwebv", "max_flux"]
+        passbands_metadata = {"r": 6.215, "g": 4.716}
         maskval, interval_val, n_bands = 0.0, 3.0, len(self.passbands)
         timesteps = int(((curve_range[1] - curve_range[0]) / interval_val + 1) * n_bands)
 
@@ -575,7 +584,7 @@ class GenerateData(object):
         passband_values = {i: passbands_metadata[i] for i in self.passbands}
 
         x_train = np.zeros(shape=(len(filename), timesteps, n_cols))
-        tess_flux = np.zeros(shape=(len(filename), int(timesteps / n_bands)))
+        # tess_flux = np.zeros(shape=(len(filename), int(timesteps / n_bands)))
         r_flux = np.zeros(shape=(len(filename), int(timesteps / n_bands)))
         g_flux = np.zeros(shape=(len(filename), int(timesteps / n_bands)))
 
@@ -598,7 +607,7 @@ class GenerateData(object):
 
             for pb, id in passband_values.items():
 
-                pb_df = df[["relative_time", "mwebv"]].copy()
+                pb_df = df[["relative_time", "mwebv", "redshift"]].copy()
                 pb_df["uncert"] = df[f"{pb}_uncert"]
                 pb_df["flux"] = df[f"{pb}_flux"]
                 pb_df["id"] = id
@@ -610,14 +619,14 @@ class GenerateData(object):
                         pb_df.loc[t] = np.full(shape=len(pb_df.columns), fill_value=maskval)
                         pb_df = pb_df.sort_index()
                 pb_df["max_flux"] = np.full(shape=len(pb_df), fill_value=max(pb_df["flux"]))
-                data_ = scaler.fit_transform(pb_df[["flux", "uncert"]])
-                pb_df.flux = data_[:, 0]
-                pb_df.uncert = data_[:, 1]
+                #data_ = scaler.fit_transform(pb_df[["flux", "uncert"]])
+                #pb_df.flux = data_[:, 0]
+                #pb_df.uncert = data_[:, 1]
                 pb_df[(pb_df["relative_time"] == maskval)] = maskval
 
-                if pb == "tess":
-                    tess_flux[i] = pb_df["flux"].values
-                elif pb == "g":
+                # if pb == "tess":
+                #     tess_flux[i] = pb_df["flux"].values
+                if pb == "g":
                     g_flux[i] = pb_df["flux"].values
                 elif pb == "r":
                     r_flux[i] = pb_df["flux"].values
@@ -630,10 +639,16 @@ class GenerateData(object):
             x_train[i] = combined_df.sort_index().to_numpy()
 
         query_cols = ['relative_time', 'id']
+        #
+        # It holds the index value of the query columns - time and id
+        #
         cols_index = [combined_df.columns.get_loc(col) for col in query_cols]
+        #
+        # It holds the index value of the flux column
+        #
         flux_index = combined_df.columns.get_loc("flux")
         self.labels = label
-        band_flux["tess"], band_flux["r"], band_flux["g"] = tess_flux, r_flux, g_flux
+        band_flux["r"], band_flux["g"] = r_flux, g_flux
         return x_train, cols_index, flux_index, self.labels, band_flux
 
     def save_data(self):
@@ -661,36 +676,39 @@ class GenerateData(object):
 
 
 if __name__ == '__main__':
+    #
+    # Generate data
+    #
+    data = GenerateData(lc_type="transients", path=f"../transients/processed_data/",
+                        passbands=["g", "r"], metadata=["redshift", "mwebv"])
+    X_train, time_id_index, flux_index, labels, band_flux = data.generate_data()
 
-    # Get data
-    data = GenerateData(lc_type="transients", path=f"../datasets/processed_data/", passbands=["g", "r"])
-    X, time_id_index, flux_index, labels, band_flux = data.generate_data()
 
-    # Train VAE
-    vae = VAE(X)
-    x_train, x_test, y_train, y_test = vae.split_training_data()
-    check_pt_path = "../saved_models/vae_chck_pts/"
+    # # Train VAE
+    # vae = VAE(X)
+    # x_train, x_test, y_train, y_test = vae.split_training_data()
+    # check_pt_path = "../saved_models/vae_chck_pts/"
+    #
+    # # training loop: after training model for 20 epochs, save it. Do this 25 iterations to train for 500 epochs
+    # optimizer = tf.keras.optimizers.Adam(clipvalue=1.0)
+    # vae.compile(optimizer=optimizer, loss=vae.reconstruction_loss)
+    # vae.epochs = 10
+    # for check_pt_numb in range(21, 31):
+    #     vae.train_model(x_train, x_test, y_train, y_test)
+    #     vae.save(check_pt_path + 'ckpt_' + str(check_pt_numb))
+    #
+    # # Load saved model
+    # rvae = VAE(X)
+    # vae = keras.models.load_model(
+    #     check_pt_path + "ckpt_26",
+    #     custom_objects={
+    #         'VAE': rvae,
+    #         'Encoder': Encoder,
+    #         'Decoder': Decoder,
+    #         'Sampling': Sampling,
+    #         'reconstruction_loss': rvae.reconstruction_loss,
+    #         'CustomMasking': CustomMasking
+    #     })
 
-    # training loop: after training model for 20 epochs, save it. Do this 25 iterations to train for 500 epochs
-    optimizer = tf.keras.optimizers.Adam(clipvalue=1.0)
-    vae.compile(optimizer=optimizer, loss=vae.reconstruction_loss)
-    vae.epochs = 10
-    for check_pt_numb in range(21, 31):
-        vae.train_model(x_train, x_test, y_train, y_test)
-        vae.save(check_pt_path + 'ckpt_' + str(check_pt_numb))
-
-    # Load saved model
-    rvae = VAE(X)
-    vae = keras.models.load_model(
-        check_pt_path + "ckpt_26",
-        custom_objects={
-            'VAE': rvae,
-            'Encoder': Encoder,
-            'Decoder': Decoder,
-            'Sampling': Sampling,
-            'reconstruction_loss': rvae.reconstruction_loss,
-            'CustomMasking': CustomMasking
-        })
-
-    vae.test_model(x_test, y_test, 40)
+    # vae.test_model(x_test, y_test, 40)
 
