@@ -19,7 +19,7 @@ path_to_store = f"../transients"
 def main():
     #
     # Declare a dictionary to store the fluxes
-    # with keys as - "g_flux" and "r-flux"
+    # with keys as - "g_band" and "r-band"
     #
     flux = dict()
     #
@@ -50,8 +50,10 @@ def main():
         #
         #
         #
-        flux["g_flux"] = g_flux
-        flux["r_flux"] = r_flux
+        g_flux[np.isnan(g_flux)] = 0
+        r_flux[np.isnan(r_flux)] = 0
+        flux["g_band"] = g_flux
+        flux["r_band"] = r_flux
     except Exception as e:
         print(f"\n\nException Raised: {e}\n\n")
 
