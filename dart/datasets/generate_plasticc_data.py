@@ -200,8 +200,7 @@ def generate_data(path=None, l_bound=-30.0, u_bound=70.0):
     with open(f"../transients/new_plasticc_objects.pickle", "wb") as file:
         pickle.dump(lc_objects, file)
 
-
-if __name__ == '__main__':
+def main():
     #
     # Declare the folder that contains the PLAsTiCC data set
     #
@@ -278,7 +277,7 @@ if __name__ == '__main__':
         # Rename the label as - "object_id-"+"class"
         #
         for o, obj in enumerate(object_id):
-            rename_ids.append(obj+"-"+label_list[i])
+            rename_ids.append(obj + "-" + label_list[i])
         #
         # Store the object_ids and labels
         #
@@ -300,7 +299,7 @@ if __name__ == '__main__':
                 create_dataframe(df=df, redshift=redshift, mwebv=mwebv, id=id,
                                  type_=label_list[i], binning=True, bin_interval="3D",
                                  l_bound=l_bound, u_bound=u_bound)
-            
+
             except Exception as e:
                 print(f"\nException Raised: {e}, \nObject ID: {id}")
                 continue
@@ -311,6 +310,11 @@ if __name__ == '__main__':
     #
     with open(f"../transients/plasticc_labels_.pickle", "wb") as file:
         pickle.dump(transient_labels, file)
-    
+
+
+if __name__ == '__main__':
+
+    main()
+
 
     

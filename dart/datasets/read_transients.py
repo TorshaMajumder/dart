@@ -38,21 +38,23 @@ def main():
     try:
         path = f"{path_to_store}/plasticc_data/"
         filenames = os.listdir(path)
+
+        #
+        g_flux = np.zeros((len(filenames), timesteps))
+        r_flux = np.zeros((len(filenames), timesteps))
+        #
+        for i, file in enumerate(filenames):
+            data = pd.read_csv(path + file)
+            g_flux[i] = data["g_flux"].values.reshape((1, timesteps))
+            r_flux[i] = data["r_flux"].values.reshape((1, timesteps))
+        #
+        #
+        #
+        flux["g_flux"] = g_flux
+        flux["r_flux"] = r_flux
     except Exception as e:
-        print(f"\n\nException Raised: e\n\n")
-    #
-    g_flux = np.zeros((len(filenames), timesteps))
-    r_flux = np.zeros((len(filenames), timesteps))
-    #
-    for i, file in enumerate(filenames):
-        data = pd.read_csv(path + file)
-        g_flux[i] = data["g_flux"].values.reshape((1, timesteps))
-        r_flux[i] = data["r_flux"].values.reshape((1, timesteps))
-    #
-    #
-    #
-    flux["g_flux"] = g_flux
-    flux["r_flux"] = r_flux
+        print(f"\n\nException Raised: {e}\n\n")
+
     #
     # Store the dictionary as a pickle file
     #
