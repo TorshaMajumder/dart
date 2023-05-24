@@ -2,10 +2,10 @@
 # Import all the dependencies
 #
 import os
-import umap
+import umap.umap_ as umap
 import pickle
 #
-# Create '/latent_space_data' folder if it does not exists already
+# Create '/latent_space_data' folder if it does not exist already
 #
 if not os.path.exists('../latent_space_data'):
     os.makedirs('../latent_space_data')
@@ -54,14 +54,14 @@ class UMap(object):
             print(e)
             exit()
 
-    def fit_transform(self, X_train=None, visualize=False):
+    def fit_transform(self, X_train=None, band=None, visualize=False):
 
         """
         Fits and Transforms the data using UMAP
 
         """
         #
-        # Create '/latent_space_data/{type}/' folder if it does not exists already
+        # Create '/latent_space_data/{type}/' folder if it does not exist already
         #
         if not os.path.exists(f"../latent_space_data/{self.type}"):
             os.makedirs(f"../latent_space_data/{self.type}")
@@ -81,14 +81,14 @@ class UMap(object):
                 return transformed_data
 
             else:
-                params_umap={
+                params_umap = {
                     "metric": self.metric,
                     "spread": self.spread,
                     "densmap": self.densmap,
                     "min_dist": self.min_dist,
                     "n_neighbors": self.n_neighbors,
                     "dens_lambda": self.dens_lambda,
-                    "n_components": self.n_components
+                    "n_components": self.n_features
                     }
                 self.estimator = umap.UMAP(**params_umap)
                 transformed_data = self.estimator.fit_transform(X_train)
@@ -99,7 +99,7 @@ class UMap(object):
                 #
                 # Store the file in -- '/latent_space_data/{type}/' folder
                 #
-                with open(f"../latent_space_data/{self.type}/umap.pickle", 'wb') as file:
+                with open(f"../latent_space_data/{self.type}/umap_{band}.pickle", 'wb') as file:
                     pickle.dump(transformed_data, file)
             #
             #
@@ -114,8 +114,13 @@ class UMap(object):
 
 if __name__ == '__main__':
 
-    umap_ = UMap(lc_type="transients", n_features=2)
-    umap_.fit_transform(X_train=None, visualize=False)
+    path = f"../transients/flux.pickle"
+    with open(path, 'rb') as f:
+        flux = pickle.load(f)
+    umap_ = UMap(lc_type="transients")
+    umap_.fit_transform(X_train=flux["g_band"], band="g_band", visualize=False)
+    umap_.fit_transform(X_train=flux["r_band"], band="r_band", visualize=False)
+
 
 
 
