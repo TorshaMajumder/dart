@@ -5,15 +5,20 @@ import numpy as np
 import pandas as pd
 from scipy.interpolate import interp1d, griddata
 #
-# Create '/plasticc_data' folder if it does not exist already
+# Create '/transients' folder if it does not exist already
 #
-if not os.path.exists("./plasticc_data"):
-    os.makedirs("./plasticc_data")
+if not os.path.exists("../transients"):
+    os.makedirs("../transients")
+#
+# Create '/transients/plasticc_data' folder if it does not exist already
+#
+if not os.path.exists("../transients/plasticc_data"):
+    os.makedirs("../transients/plasticc_data")
 #
 # Set all the parameters
 #
 random.seed(0)
-path_to_store = "./plasticc_data"
+path_to_store = "../transients/plasticc_data"
 
 
 def binned_transients(df=None, interval="1D", time_col="relative_time", uncert="r_uncert"):
@@ -192,7 +197,7 @@ def generate_data(path=None, l_bound=-30.0, u_bound=70.0):
                 continue
         lc_objects[filenames[i]] = objects
     #
-    with open(f"./new_plasticc_objects.pickle", "wb") as file:
+    with open(f"../transients/new_plasticc_objects.pickle", "wb") as file:
         pickle.dump(lc_objects, file)
 
 
@@ -225,7 +230,7 @@ if __name__ == '__main__':
     #
     # Read the filtered objects in the - new_plasticc_objects.pickle
     #
-    file = open(f"new_plasticc_objects.pickle", 'rb')
+    file = open(f"../transients/new_plasticc_objects.pickle", 'rb')
     filtered_object_ids = pickle.load(file)
     #
     # Read the files in the folder
@@ -304,7 +309,7 @@ if __name__ == '__main__':
     #
     transient_labels = dict(zip(label_df["object_id"], label_df["label"]))
     #
-    with open(f"./plasticc_labels_.pickle", "wb") as file:
+    with open(f"../transients/plasticc_labels_.pickle", "wb") as file:
         pickle.dump(transient_labels, file)
     
 
