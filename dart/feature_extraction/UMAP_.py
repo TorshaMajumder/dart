@@ -20,7 +20,6 @@ class UMap(object):
 
     Parameters
     ----------
-
     X_train: numpy ndarray (default = None)
         training data set
 
@@ -73,7 +72,7 @@ class UMap(object):
                 #
                 # Initialize the umap estimator
                 #
-                self.estimator = umap.UMAP(n_components=self.n_features)
+                self.estimator = umap.UMAP(n_components=self.n_features, random_state=42)
                 #
                 # Fit and transform the data
                 #
