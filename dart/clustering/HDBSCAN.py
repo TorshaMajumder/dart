@@ -4,14 +4,13 @@
 import os
 import pickle
 import hdbscan
-from TESS.datasets.transients import load_latent_space
-#from sklearn.datasets import load_digits
-
+from dart.datasets.transients import load_latent_space
 #
-# Create '/results/clustering' folder if it does not exists already
+# Create '/results/clustering' folder if it does not exist already
 #
 if not os.path.exists('../results/clustering'):
     os.makedirs('../results/clustering')
+
 
 class HDBSCAN_(object):
 
@@ -50,22 +49,24 @@ class HDBSCAN_(object):
 
     """
 
-    def __init__(self, X=None, min_cluster_size=10, min_samples=10, gen_min_span_tree=True,
-                 labels=None, lc_type=None, extract_type=None, contamination=0.1):
+    def __init__(self, X=None, min_cluster_size=20, min_samples=10,
+                 cluster_selection_epsilon=0.000000001, contamination=0.1,
+                 labels=None, lc_type=None, extract_type=None, cluster_selection_method='eom'):
+
         self.X = X
-        self.min_cluster_size = min_cluster_size
-        self.min_samples = min_samples
-        self.gen_min_span_tree = gen_min_span_tree
-        self.estimator = None
+        self.type = lc_type
         self.clusters = None
+        self.labels = labels
+        self.estimator = None
+        self.n_samples = None
         self.anomaly_score = None
         self.anomaly_index = None
-        self.labels = labels
-        self.n_samples = None
-        self.type = lc_type
+        self.min_samples = min_samples
         self.extract_type = extract_type
         self.contamination = contamination
-
+        self.min_cluster_size = min_cluster_size
+        self.cluster_selection_method = cluster_selection_method
+        self.cluster_selection_epsilon = cluster_selection_epsilon
 
         try:
             if self.type not in ["transits", "transients"]:
@@ -76,45 +77,24 @@ class HDBSCAN_(object):
             exit()
 
         try:
-            if self.extract_type not in ["k_pca", "tsfresh", "vae", "isomap"]:
+            if self.extract_type not in ["k_pca", "tsfresh", "vae", "isomap", "umap"]:
                 raise TypeError(f"\nTypeError: '{self.extract_type}' is not a valid type!"
-                                f"\nPlease provide the type as - 'k_pca' , 'tsfresh', 'isomap',or 'vae'")
+                                f"\nPlease provide the type as - 'k_pca' , 'tsfresh', 'isomap', 'umap', or 'vae'")
         except Exception as e:
             print(e)
             exit()
 
-
-
-    def fit(self, X, y=None):
+    def fit_predict(self, X_train=None, y_train=None):
 
         """
         Fits the data to Birch estimator
 
         Parameter
         ---------
-        X: ndarray
+        X_train: ndarray
             training data set
 
-        y: Ignored
-            not used, present here for consistency by convention.
-        """
-        self.n_samples = X_train.shape[0]
-        self.estimator = hdbscan.HDBSCAN()
-
-        self.estimator.fit(X)
-
-
-    def predict(self, X, y=None):
-
-        """
-        Predicts the data using Birch estimator
-
-        Parameter
-        ---------
-        X: ndarray
-            training data set
-
-        y: Ignored
+        y_train: Ignored
             not used, present here for consistency by convention.
 
         Returns
@@ -128,12 +108,17 @@ class HDBSCAN_(object):
         anomaly_score: ndarray
             anomaly score of the data samples (the higher the score,
             the more likely the point is to be an outlier)
-
         """
+        self.n_samples = X_train.shape[0]
+        self.estimator = hdbscan.HDBSCAN(min_cluster_size=self.min_cluster_size,
+                                         cluster_selection_epsilon=self.cluster_selection_epsilon,
+                                         cluster_selection_method=self.cluster_selection_method)
+
+        self.estimator.fit(X_train)
         #
         # Select the (100-(idx*100))th percentile of the weirdness score
         #
-        idx = int(self.n_samples*self.contamination)
+        idx = int(self.n_samples * self.contamination)
         #
         # Store the cluster ids, anomaly index and score
         #
@@ -150,7 +135,7 @@ class HDBSCAN_(object):
         anomaly_labels = {'labels': self.labels, 'anomaly_index': self.anomaly_index,
                           'anomaly_score': self.anomaly_score}
         #
-        # Create '/results/clustering/{type}/' folder if it does not exists already
+        # Create '/results/clustering/{type}/' folder if it does not exist already
         #
         if not os.path.exists(f"../results/clustering/{self.type}"):
             os.makedirs(f"../results/clustering/{self.type}")
@@ -165,7 +150,7 @@ class HDBSCAN_(object):
         print(f"\nClusters are generated and stored "
               f"in -- /results/clustering/{self.type} -- folder!\n")
         #
-        # Create '/results/clustering/{type}/' folder if it does not exists already
+        # Create '/results/clustering/{type}/' folder if it does not exist already
         #
         if not os.path.exists(f"../results/anomaly_detection/{self.type}"):
             os.makedirs(f"../results/anomaly_detection/{self.type}")
@@ -185,13 +170,11 @@ class HDBSCAN_(object):
 
 if __name__ == '__main__':
 
-    data = load_latent_space(extract_type='k_pca')
+    data = load_latent_space(extract_type='umap')
     X_train, labels = data['data'], data['labels']
+    hdbscan_ = HDBSCAN_(labels=labels, lc_type='transients', extract_type='umap')
+    clusters, anomaly_score, anomaly_index = hdbscan_.fit_predict(X_train=X_train)
 
-    # digits = load_digits()
-    # X_train, labels = digits.data, digits.target
 
-    hdbscan_ = HDBSCAN_(labels=labels, lc_type='transients', extract_type='k_pca', contamination=0.1)
-    hdbscan_.fit(X_train)
-    clusters, anomaly_score, anomaly_index = hdbscan_.predict(X_train)
+
 
