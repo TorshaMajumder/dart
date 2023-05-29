@@ -25,7 +25,7 @@ def combine_features(extract_type=None):
     #
     # Concatenate the features of both the bands
     # store it as a numpy array under the
-    # folder as - "../latent_space_data/transients/{extract_type}.pickle"
+    # folder as - "../latent_space_data/transients/{extract_type}_{band}.pickle"
     #
     for band in bands:
         #
@@ -39,16 +39,14 @@ def combine_features(extract_type=None):
         except Exception as e:
             print(f"\n\nException Raised: {e}\n\n")
             return
-    #
-    #
-    #
+
     flux = np.concatenate((band_flux[0], band_flux[1]), axis=1)
-    #
     data["data"] = flux
     data["labels"] = labels
     #
     with open(f"../latent_space_data/transients/{extract_type}.pickle", 'wb') as file:
         pickle.dump(data, file)
+    print(f"\n\nFluxes are combined and stored in the folder -- /latent_space_data/transients/.\n\n")
     return data
 
 
