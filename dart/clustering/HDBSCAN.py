@@ -31,11 +31,23 @@ class HDBSCAN_(object):
         clustering – more points will be declared as noise, and clusters
          will be restricted to progressively more dense areas
 
-    gen_min_span_tree: bool (default=True)
-        build the minimal spanning tree
+    cluster_selection_epsilon: float (default=0.000000001)
+        this parameter helps to merge clusters when there are a large
+        number of micro-clusters.
+
+    cluster_selection_method: string (default='eom' ---> Excess of Mass)
+        This parameter determines how it selects flat clusters from
+        the cluster tree hierarchy.
+        Notes: Excess of Mass has a tendency to pick one or two large clusters
+        and then a number of small extra clusters. In this situation we may
+        want to re-cluster just the data in the single large cluster. Instead,
+        a better option is to select 'leaf' as a cluster selection method.
+        This will select leaf nodes from the tree, producing many small
+        homogeneous clusters.
 
     contamination: float (default=0.1)
-        amount of contamination of the data set, i.e. the proportion of outliers in the data set
+        amount of contamination of the data set, i.e. the proportion of
+        outliers in the data set
 
     labels: string
         IAU Name or TIC ID
@@ -49,7 +61,7 @@ class HDBSCAN_(object):
 
     """
 
-    def __init__(self, X=None, min_cluster_size=20, min_samples=10,
+    def __init__(self, X=None, min_cluster_size=30, min_samples=10,
                  cluster_selection_epsilon=0.000000001, contamination=0.1,
                  labels=None, lc_type=None, extract_type=None, cluster_selection_method='eom'):
 
@@ -87,7 +99,7 @@ class HDBSCAN_(object):
     def fit_predict(self, X_train=None, y_train=None):
 
         """
-        Fits the data to Birch estimator
+        Fits the data to HDBSCAN estimator
 
         Parameter
         ---------
