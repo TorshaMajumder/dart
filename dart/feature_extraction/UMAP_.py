@@ -32,7 +32,7 @@ class UMap(object):
 
     """
 
-    def __init__(self, lc_type=None, n_features=5, n_neighbors=10, min_dist=0.0,
+    def __init__(self, lc_type=None, n_features=5, n_neighbors=50, min_dist=0.0,
                  metric="cosine", densmap=True, dens_lambda=10, spread=3):
 
         self.type = lc_type
@@ -98,7 +98,7 @@ class UMap(object):
                 #
                 # Store the file in -- '/latent_space_data/{type}/' folder
                 #
-                with open(f"../latent_space_data/{self.type}/umap_{band}.pickle", 'wb') as file:
+                with open(f"../latent_space_data/{self.type}/umap.pickle", 'wb') as file:
                     pickle.dump(transformed_data, file)
             #
             #
@@ -115,10 +115,9 @@ if __name__ == '__main__':
 
     path = f"../transients/flux.pickle"
     with open(path, 'rb') as f:
-        flux = pickle.load(f)
+        data = pickle.load(f)
     umap_ = UMap(lc_type="transients")
-    umap_.fit_transform(X_train=flux["g_band"], band="g_band", visualize=False)
-    umap_.fit_transform(X_train=flux["r_band"], band="r_band", visualize=False)
+    umap_.fit_transform(X_train=data["flux"], visualize=False)
 
 
 
